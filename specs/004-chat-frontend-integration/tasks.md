@@ -25,8 +25,8 @@ description: "Task list for Chat Frontend-Backend Integration"
 
 **Purpose**: Allow the frontend's `POST /v1/chat` requests through the backend's CORS policy — a prerequisite for the real (non-mocked) integration to work at all
 
-- [ ] T001 [P] Write a failing test verifying a CORS preflight for `POST /v1/chat` from `http://localhost:4200` succeeds, in `backend/tests/unit/test_cors.py`
-- [ ] T002 Update `CORSMiddleware`'s `allow_methods` in `backend/src/main.py` to `["GET", "POST"]` per `contracts/cors-policy.md` — makes T001 pass
+- [X] T001 [P] Write a failing test verifying a CORS preflight for `POST /v1/chat` from `http://localhost:4200` succeeds, in `backend/tests/unit/test_cors.py`
+- [X] T002 Update `CORSMiddleware`'s `allow_methods` in `backend/src/main.py` to `["GET", "POST"]` per `contracts/cors-policy.md` — makes T001 pass
 
 **Checkpoint**: The backend accepts cross-origin `POST` requests to `/v1/chat` from the frontend's dev origin.
 
@@ -42,19 +42,19 @@ description: "Task list for Chat Frontend-Backend Integration"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (Constitution Principle I)**
 
-- [ ] T003 [P] [US1] Write failing tests for `ChatApiService.streamReply()` against a mocked global `fetch`/`ReadableStream`: emits each word, completes cleanly on stream end (FR-004), errors on a 10-second silence via fake timers (FR-005), and errors on a mid-stream reader rejection while nothing is lost from what already arrived (FR-006) — in `frontend/src/app/features/chat/chat-api.service.spec.ts`
-- [ ] T004 [P] [US1] Write failing tests for the extended `ChatService` — sending a message appends both a user message and a `streaming` assistant message, the assistant message's text grows as a mocked `ChatApiService` emits words, its status becomes `complete`/`error` accordingly, and `isSending` is `true` for the whole exchange and `false` once it settles (FR-001–FR-005, FR-007) — in `frontend/src/app/features/chat/chat.service.spec.ts`
-- [ ] T005 [P] [US1] Write failing tests for `ChatInputComponent` — send (button and Enter) is disabled while `chatService.isSending()` is `true` (FR-007) — in `frontend/src/app/features/chat/chat-input.component.spec.ts`
-- [ ] T006 [P] [US1] Write failing tests for `MessageBubbleComponent` — renders a `sender: 'assistant'` message with distinct styling from `'user'`, and renders a `status: 'error'` message with a visible failure indication (FR-002, FR-005, FR-006) — in `frontend/src/app/features/chat/message-bubble.component.spec.ts`
+- [X] T003 [P] [US1] Write failing tests for `ChatApiService.streamReply()` against a mocked global `fetch`/`ReadableStream`: emits each word, completes cleanly on stream end (FR-004), errors on a 10-second silence via fake timers (FR-005), and errors on a mid-stream reader rejection while nothing is lost from what already arrived (FR-006) — in `frontend/src/app/features/chat/chat-api.service.spec.ts` — required importing `ReadableStream` from `node:stream/web` since jsdom exposes `fetch`/`Response` but not `ReadableStream` as a global
+- [X] T004 [P] [US1] Write failing tests for the extended `ChatService` — sending a message appends both a user message and a `streaming` assistant message, the assistant message's text grows as a mocked `ChatApiService` emits words, its status becomes `complete`/`error` accordingly, and `isSending` is `true` for the whole exchange and `false` once it settles (FR-001–FR-005, FR-007) — in `frontend/src/app/features/chat/chat.service.spec.ts`
+- [X] T005 [P] [US1] Write failing tests for `ChatInputComponent` — send (button and Enter) is disabled while `chatService.isSending()` is `true` (FR-007) — in `frontend/src/app/features/chat/chat-input.component.spec.ts`
+- [X] T006 [P] [US1] Write failing tests for `MessageBubbleComponent` — renders a `sender: 'assistant'` message with distinct styling from `'user'`, and renders a `status: 'error'` message with a visible failure indication (FR-002, FR-005, FR-006) — in `frontend/src/app/features/chat/message-bubble.component.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] Add `sender: 'user' | 'assistant'` and `status: 'complete' | 'streaming' | 'error'` to the `ChatMessage` interface in `frontend/src/app/features/chat/chat-message.model.ts` per data-model.md
-- [ ] T008 [P] [US1] Implement `ChatApiService.streamReply(text): Observable<string>` — `fetch` POST, SSE line parsing per `specs/003-chat-api-sse/contracts/chat-api.md`, 10-second time-to-first-event timeout via `AbortController` (research.md) — in `frontend/src/app/features/chat/chat-api.service.ts` — makes T003 pass
-- [ ] T009 [US1] Update `ChatService.sendMessage()` to append a user message and a `streaming` assistant message, subscribe to `ChatApiService.streamReply()` to grow/finalize the assistant message, and expose `isSending` — in `frontend/src/app/features/chat/chat.service.ts` (depends on T007, T008) — makes T004 pass
-- [ ] T010 [US1] Update `ChatInputComponent` to bind `[disabled]` on the textarea/send button to `chatService.isSending()` and guard `onKeydown`/`submit()` against sending while `true` — in `frontend/src/app/features/chat/chat-input.component.ts` (depends on T009) — makes T005 pass
-- [ ] T011 [US1] Update `MessageBubbleComponent` to style by `message.sender` (assistant bubble visually distinct from user) and `message.status` (visible indication for `'error'`) — in `frontend/src/app/features/chat/message-bubble.component.ts` (depends on T007) — makes T006 pass
-- [ ] T012 [US1] Manually validate Acceptance Scenarios 1–4 via quickstart.md steps 2–4 (depends on T002, T010, T011)
+- [X] T007 [P] [US1] Add `sender: 'user' | 'assistant'` and `status: 'complete' | 'streaming' | 'error'` to the `ChatMessage` interface in `frontend/src/app/features/chat/chat-message.model.ts` per data-model.md
+- [X] T008 [P] [US1] Implement `ChatApiService.streamReply(text): Observable<string>` — `fetch` POST, SSE line parsing per `specs/003-chat-api-sse/contracts/chat-api.md`, 10-second time-to-first-event timeout via `AbortController` (research.md) — in `frontend/src/app/features/chat/chat-api.service.ts` — makes T003 pass. Uses a manual "race each read() against the abort signal" pattern rather than relying solely on passing `signal` to `fetch()`, since a mocked stream in tests won't otherwise honor an `AbortSignal`
+- [X] T009 [US1] Update `ChatService.sendMessage()` to append a user message and a `streaming` assistant message, subscribe to `ChatApiService.streamReply()` to grow/finalize the assistant message, and expose `isSending` — in `frontend/src/app/features/chat/chat.service.ts` (depends on T007, T008) — makes T004 pass
+- [X] T010 [US1] Update `ChatInputComponent` to bind `[disabled]` on the textarea/send button to `chatService.isSending()` and guard `onKeydown`/`submit()` against sending while `true` — in `frontend/src/app/features/chat/chat-input.component.ts` (depends on T009) — makes T005 pass. The textarea's disabled state (via `ngModel`) applies one change-detection cycle later than the button's, since `NgModel`'s `setDisabledState` runs asynchronously — the test accounts for this with `await fixture.whenStable()`
+- [X] T011 [US1] Update `MessageBubbleComponent` to style by `message.sender` (assistant bubble visually distinct from user) and `message.status` (visible indication for `'error'`) — in `frontend/src/app/features/chat/message-bubble.component.ts` (depends on T007) — makes T006 pass. Also added a subtle pending indicator while `status === 'streaming'` and text is still empty, per research.md's design decision
+- [X] T012 [US1] Manually validate Acceptance Scenarios 1–4 via quickstart.md steps 2–4 (depends on T002, T010, T011) — verified via curl against the real running backend with an `Origin: http://localhost:4200` header: CORS succeeds, response streams word-by-word exactly as the frontend's `fetch` call will receive it; confirmed the frontend serves the chat page bundle correctly. No browser extension available this session for a visual walkthrough of bubble rendering — that behavior is covered directly by the `ChatService`/`MessageBubbleComponent` unit tests (T004, T006), which exercise the same code paths against a mocked `ChatApiService`
 
 **Checkpoint**: At this point, User Story 1 is fully functional and independently testable — this is the entire MVP for this feature.
 
@@ -64,7 +64,7 @@ description: "Task list for Chat Frontend-Backend Integration"
 
 **Purpose**: Final validation
 
-- [ ] T013 Run full quickstart.md validation (backend `pytest`, frontend `vitest`, plus all manual scenarios from steps 2–4) and confirm SC-001–SC-004 are met (depends on T012)
+- [X] T013 Run full quickstart.md validation (backend `pytest`, frontend `vitest`, plus all manual scenarios from steps 2–4) and confirm SC-001–SC-004 are met (depends on T012) — `./scripts/test.sh` run: 8/8 backend + 42/42 frontend passing, 93.49% overall frontend coverage
 
 ---
 

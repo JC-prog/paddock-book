@@ -26,20 +26,25 @@ plan.
   `sse-starlette` already handles, against Constitution Principle IV (avoid
   unnecessary hand-rolled complexity).
 
-## Decision: word-by-word delivery via a generator function, no artificial delay
+## Decision: word-by-word delivery via an async generator, with a 150ms delay between words
 
 - **Rationale**: FR-004 requires the placeholder ("Hello, this is a test
-  response.") to arrive as multiple discrete events, one word at a time. A
-  plain Python generator (`for word in text.split(" "): yield word`) fed into
-  `EventSourceResponse` satisfies this with no added complexity. No
-  artificial delay is added between words — SC-001 only bounds time-to-first-
-  event (under 1 second), and nothing in the spec requires a particular
-  pacing between subsequent words; adding one would be speculative for a
-  placeholder with no real generation latency to simulate yet.
-- **Alternatives considered**: Delaying each word (e.g. `asyncio.sleep(0.1)`)
-  to simulate realistic typing pace — rejected as unrequested and untestable
-  against any stated success criterion; can be added later if a real
-  language-model integration's actual pacing needs demonstrating.
+  response.") to arrive as multiple discrete events, one word at a time.
+  **Revised post-launch** (2026-08-05): the initial version used a plain
+  sync generator with no delay between words — technically multiple SSE
+  events, but arriving fast enough (sub-millisecond) that the streaming was
+  imperceptible to a human watching it (e.g. in Postman or the frontend
+  UI), which defeated the purpose of having built SSE in the first place.
+  Changed to an `async def` generator using `await asyncio.sleep(0.15)`
+  between words (not before the first, so SC-001's time-to-first-event
+  bound is unaffected) — a synchronous `time.sleep` was not an option since
+  it would block the event loop for other requests. `EventSourceResponse`
+  already accepts async iterables, so no change was needed in `router.py`.
+- **Alternatives considered**: No delay (original decision) — rejected once
+  it became clear the streaming effect wasn't actually observable in
+  practice. A longer delay (e.g. 300ms+) — rejected as unnecessarily slowing
+  down the existing full-stream test in `test_chat.py` for no added
+  demonstration value; 150ms is enough to be visible without being sluggish.
 
 ## Decision: test the stream with `httpx`'s streaming client, not FastAPI's buffering `TestClient` calls
 
