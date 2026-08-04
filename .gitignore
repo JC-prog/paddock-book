@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node.js / Angular (frontend/)
+node_modules/
+.angular/
+npm-debug.log*
+*.tsbuildinfo
+out-tsc/

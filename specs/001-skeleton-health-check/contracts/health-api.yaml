@@ -1,0 +1,36 @@
+openapi: 3.0.3
+info:
+  title: PaddockBook Health API
+  version: "0.1.0"
+  description: >
+    Liveness check for the PaddockBook backend. Unauthenticated by design (FR-002) —
+    reports process liveness only, no dependency checks (see spec Assumptions).
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Report backend operational status
+      security: []
+      responses:
+        "200":
+          description: Backend is running and responsive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+              examples:
+                healthy:
+                  value:
+                    status: ok
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+          description: Literal indicator that the backend process is up (FR-001)
