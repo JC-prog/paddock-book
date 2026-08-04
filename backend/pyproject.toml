@@ -1,0 +1,5 @@
+[tool.coverage.run]
+source = ["src"]
+
+[tool.coverage.report]
+show_missing = true
