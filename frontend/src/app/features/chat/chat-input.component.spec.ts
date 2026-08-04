@@ -1,11 +1,16 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 
 import { ChatInputComponent } from './chat-input.component';
 import { ChatService } from './chat.service';
 
 describe('ChatInputComponent', () => {
-  function setup() {
-    const chatServiceSpy = { sendMessage: vi.fn() } satisfies Partial<ChatService>;
+  function setup(isSending = false) {
+    const isSendingSignal = signal(isSending);
+    const chatServiceSpy = {
+      sendMessage: vi.fn(),
+      isSending: isSendingSignal
+    } satisfies Partial<ChatService>;
 
     TestBed.configureTestingModule({
       imports: [ChatInputComponent],
@@ -14,7 +19,7 @@ describe('ChatInputComponent', () => {
 
     const fixture = TestBed.createComponent(ChatInputComponent);
     fixture.detectChanges();
-    return { fixture, component: fixture.componentInstance, chatServiceSpy };
+    return { fixture, component: fixture.componentInstance, chatServiceSpy, isSendingSignal };
   }
 
   function enterEvent(shiftKey: boolean): KeyboardEvent {
@@ -69,5 +74,48 @@ describe('ChatInputComponent', () => {
 
     expect(chatServiceSpy.sendMessage).not.toHaveBeenCalled();
     expect(component.draft).toBe('   ');
+  });
+
+  it('disables the send button and textarea while a reply is in flight', async () => {
+    const { fixture } = setup(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('[data-testid="send-button"]');
+    const textarea: HTMLTextAreaElement = fixture.nativeElement.querySelector('textarea');
+
+    expect(button.disabled).toBe(true);
+    expect(textarea.disabled).toBe(true);
+  });
+
+  it('does not send via Enter while a reply is in flight', () => {
+    const { component, chatServiceSpy } = setup(true);
+    component.draft = 'hello';
+
+    component.onKeydown(enterEvent(false));
+
+    expect(chatServiceSpy.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not send via the button while a reply is in flight', () => {
+    const { fixture, component, chatServiceSpy } = setup(true);
+    component.draft = 'hello';
+    fixture.detectChanges();
+
+    component.submit();
+
+    expect(chatServiceSpy.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('re-enables sending once isSending becomes false', () => {
+    const { fixture, isSendingSignal, component, chatServiceSpy } = setup(true);
+    component.draft = 'hello';
+
+    isSendingSignal.set(false);
+    fixture.detectChanges();
+    component.submit();
+
+    expect(chatServiceSpy.sendMessage).toHaveBeenCalledWith('hello');
   });
 });

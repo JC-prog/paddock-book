@@ -9,7 +9,7 @@ app = FastAPI(title="PaddockBook API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:4200"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
