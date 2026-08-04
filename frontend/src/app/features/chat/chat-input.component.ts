@@ -12,21 +12,23 @@ import { ChatService } from './chat.service';
       <textarea
         [(ngModel)]="draft"
         (keydown)="onKeydown($event)"
+        [disabled]="chatService.isSending()"
         rows="1"
         placeholder="Type a message..."
-        class="max-h-32 flex-1 resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="max-h-32 flex-1 resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
       ></textarea>
       <button
         type="button"
         data-testid="send-button"
         (click)="submit()"
-        class="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        [disabled]="chatService.isSending()"
+        class="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >Send</button>
     </div>
   `
 })
 export class ChatInputComponent {
-  private readonly chatService = inject(ChatService);
+  protected readonly chatService = inject(ChatService);
 
   draft = '';
 
@@ -38,6 +40,10 @@ export class ChatInputComponent {
   }
 
   submit(): void {
+    if (this.chatService.isSending()) {
+      return;
+    }
+
     const trimmed = this.draft.trim();
     if (!trimmed) {
       return;
