@@ -25,8 +25,8 @@ description: "Task list for Local Vector Database for Regulation Chunks"
 
 **Purpose**: Add the new test dependency and scaffold the integration test directory
 
-- [ ] T001 [P] Add `psycopg[binary]` to `backend/requirements.txt`
-- [ ] T002 [P] Create the `backend/tests/integration/` package (`__init__.py`), separate from `tests/unit/` per Constitution Principle II
+- [X] T001 [P] Add `psycopg[binary]` to `backend/requirements.txt` — pinned to 3.3.4 (latest available)
+- [X] T002 [P] Create the `backend/tests/integration/` package (`__init__.py`), separate from `tests/unit/` per Constitution Principle II
 
 **Checkpoint**: The integration test directory exists and the Postgres driver is installable.
 
@@ -42,15 +42,15 @@ description: "Task list for Local Vector Database for Regulation Chunks"
 
 > **NOTE: Write this test FIRST, ensure it FAILS before implementation (Constitution Principle I)**
 
-- [ ] T003 [US1] Write a failing integration test in `backend/tests/integration/test_schema.py` verifying: the `vector` extension is enabled; `documents` has `id`, `title`, `created_at`; `document_chunks` has `id`, `document_id` (FK to `documents`), `chunk_text`, `embedding` (`vector(1024)`), `department` (enum: sporting/technical/financial), `chunk_order`, `created_at`; and the `(document_id, chunk_order)` unique constraint exists — per `data-model.md` and `contracts/schema.md`
+- [X] T003 [US1] Write a failing integration test in `backend/tests/integration/test_schema.py` verifying: the `vector` extension is enabled; `documents` has `id`, `title`, `created_at`; `document_chunks` has `id`, `document_id` (FK to `documents`), `chunk_text`, `embedding` (`vector(1024)`), `department` (enum: sporting/technical/financial), `chunk_order`, `created_at`; and the `(document_id, chunk_order)` unique constraint exists — per `data-model.md` and `contracts/schema.md` — confirmed failing (connection refused) before any schema/container existed
 
 ### Implementation for User Story 1
 
-- [ ] T004 [P] [US1] Write `db/init/001_init_schema.sql` — `CREATE EXTENSION IF NOT EXISTS vector`, the `department` enum type, and the `documents`/`document_chunks` tables with their FK and unique constraint, per `data-model.md`
-- [ ] T005 [P] [US1] Write `docker-compose.yml` — a `db` service using `pgvector/pgvector:0.8.1-pg16` (research.md), a named volume for persistence (FR-002), a healthcheck, and `db/init/` mounted read-only into `/docker-entrypoint-initdb.d/`
-- [ ] T006 [P] [US1] Write `.env.example` at the repo root — `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`, `POSTGRES_HOST`, and a combined `DATABASE_URL`, all safe non-secret local-dev placeholder values (FR-005)
-- [ ] T007 [US1] Start the database (`docker compose up -d`) and run the integration test against it, confirming it passes (depends on T003, T004, T005, T006) — makes T003 pass
-- [ ] T008 [US1] Manually validate Acceptance Scenarios 1–4 (extension/schema shape, persistence across a restart, `.env.example` completeness) via quickstart.md steps 1–3 (depends on T007)
+- [X] T004 [P] [US1] Write `db/init/001_init_schema.sql` — `CREATE EXTENSION IF NOT EXISTS vector`, the `department` enum type, and the `documents`/`document_chunks` tables with their FK and unique constraint, per `data-model.md`
+- [X] T005 [P] [US1] Write `docker-compose.yml` — a `db` service using `pgvector/pgvector:0.8.1-pg16` (research.md), a named volume for persistence (FR-002), a healthcheck, and `db/init/` mounted read-only into `/docker-entrypoint-initdb.d/`
+- [X] T006 [P] [US1] Write `.env.example` at the repo root — `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`, `POSTGRES_HOST`, and a combined `DATABASE_URL`, all safe non-secret local-dev placeholder values (FR-005)
+- [X] T007 [US1] Start the database (`docker compose up -d`) and run the integration test against it, confirming it passes (depends on T003, T004, T005, T006) — makes T003 pass — 7/7 passing on first run
+- [X] T008 [US1] Manually validate Acceptance Scenarios 1–4 (extension/schema shape, persistence across a restart, `.env.example` completeness) via quickstart.md steps 1–3 (depends on T007) — verified via `docker compose exec ... psql`: extension/schema match exactly, a row survives `docker compose restart db`
 
 **Checkpoint**: At this point, User Story 1 is fully functional and independently testable — this is the MVP.
 
@@ -62,8 +62,8 @@ description: "Task list for Local Vector Database for Regulation Chunks"
 
 **Independent Test**: On a machine with only the prerequisites installed, run the onboarding script from a fresh clone and confirm it finishes with a working backend environment, installed frontend dependencies, a running database, and a populated `.env`.
 
-- [ ] T009 [US2] Write `scripts/dev-setup.sh`: check Docker is installed/running with a clear, actionable error if not (Edge Case); create `backend/.venv` and install dependencies if missing; run `npm install` in `frontend/`; run `docker compose up -d`; copy `.env.example` to `.env` only if `.env` does not already exist (FR-006–FR-008) (depends on T005, T006 existing to orchestrate)
-- [ ] T010 [US2] Manually validate Acceptance Scenarios 1–5 (fresh-clone bootstrap, and a safe idempotent re-run that leaves a customized `.env` untouched) via quickstart.md steps 4–5 (depends on T009)
+- [X] T009 [US2] Write `scripts/dev-setup.sh`: check Docker is installed/running with a clear, actionable error if not (Edge Case); create `backend/.venv` and install dependencies if missing; run `npm install` in `frontend/`; run `docker compose up -d`; copy `.env.example` to `.env` only if `.env` does not already exist (FR-006–FR-008) (depends on T005, T006 existing to orchestrate)
+- [X] T010 [US2] Manually validate Acceptance Scenarios 1–5 (fresh-clone bootstrap, and a safe idempotent re-run that leaves a customized `.env` untouched) via quickstart.md steps 4–5 (depends on T009) — verified with a real fresh-clone simulation in a scratch directory (rsync excluding `.venv`/`node_modules`/`.env`): venv created, npm install ran, `.env` created from example, database started (Scenarios 1–4); re-ran on top of that with a manually appended `.env` edit — script completed cleanly, correctly reported ".env already exists — leaving it untouched", edit survived (Scenario 5). Reordered the script to create `.env` before `docker compose up -d` (more logically correct — compose then reads actual config, not just its fallback defaults)
 
 **Checkpoint**: Both user stories are independently functional — the database can be started directly (US1), or a new developer can bootstrap everything at once (US2).
 
@@ -73,7 +73,7 @@ description: "Task list for Local Vector Database for Regulation Chunks"
 
 **Purpose**: Final validation
 
-- [ ] T011 Run full quickstart.md validation (the integration test, plus all manual scenarios from steps 1–5) and confirm SC-001–SC-005 are met (depends on T008, T010)
+- [X] T011 Run full quickstart.md validation (the integration test, plus all manual scenarios from steps 1–5) and confirm SC-001–SC-005 are met (depends on T008, T010) — final combined run: 15/15 backend tests passing (8 existing unit + 7 new integration), no regressions
 
 ---
 
