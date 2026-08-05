@@ -1,0 +1,21 @@
+services:
+  db:
+    image: pgvector/pgvector:0.8.1-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-paddockbook}
+      POSTGRES_USER: ${POSTGRES_USER:-paddockbook}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-paddockbook}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - paddockbook_pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-paddockbook} -d ${POSTGRES_DB:-paddockbook}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  paddockbook_pgdata:
