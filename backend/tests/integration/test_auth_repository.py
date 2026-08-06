@@ -9,6 +9,7 @@ from src.modules.auth.repository import (
     create_refresh_token,
     create_user,
     get_user_by_email,
+    get_user_by_id,
     get_valid_refresh_token,
     revoke_refresh_token,
 )
@@ -140,3 +141,21 @@ def test_get_valid_refresh_token_excludes_expired_token(conn):
 def test_revoke_refresh_token_is_a_no_op_for_unknown_hash(conn):
     revoke_refresh_token(conn, "no-such-token-hash")
     conn.commit()
+
+
+def test_get_user_by_id_returns_the_matching_user(conn):
+    email = _unique_email()
+    created = create_user(conn, email, "hashed-password", "financial")
+    conn.commit()
+
+    try:
+        fetched = get_user_by_id(conn, created["id"])
+        assert fetched is not None
+        assert fetched["email"] == email
+        assert fetched["department"] == "financial"
+    finally:
+        _cleanup(email)
+
+
+def test_get_user_by_id_returns_none_for_unknown_id(conn):
+    assert get_user_by_id(conn, "00000000-0000-0000-0000-000000000000") is None

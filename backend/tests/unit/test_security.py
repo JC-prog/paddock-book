@@ -7,8 +7,10 @@ from src.core.config import Settings
 from src.core.security import (
     create_access_token,
     decode_access_token,
+    generate_refresh_token,
     get_current_user,
     hash_password,
+    hash_token,
     verify_password,
 )
 
@@ -109,3 +111,21 @@ def test_get_current_user_raises_401_for_invalid_token():
         get_current_user(authorization="Bearer not-a-real-token", settings=settings)
 
     assert exc_info.value.status_code == 401
+
+
+def test_generate_refresh_token_produces_a_high_entropy_unique_value():
+    first = generate_refresh_token()
+    second = generate_refresh_token()
+
+    assert first != second
+    assert len(first) >= 32
+
+
+def test_hash_token_is_deterministic_and_does_not_return_the_raw_token():
+    token = generate_refresh_token()
+
+    hashed_once = hash_token(token)
+    hashed_again = hash_token(token)
+
+    assert hashed_once == hashed_again
+    assert hashed_once != token
