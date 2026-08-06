@@ -11,6 +11,28 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-06
+
+Spec: `specs/006-pdf-ingestion-pipeline/spec.md`
+
+### Added
+
+- Backend: a locally-invoked CLI
+  (`python -m src.modules.ingestion.cli --file ... --title ... --department ...`)
+  that ingests a PDF regulation document — extracting its text, splitting
+  it into fixed-size overlapping chunks, embedding each chunk via AWS
+  Bedrock Titan Text Embeddings V2, and writing one `documents` row plus
+  one `document_chunks` row per chunk (feature 005's schema) inside a
+  single transaction.
+- Backend: re-ingesting a title that already exists is rejected before any
+  parsing or embedding work happens; any failure partway through a run
+  (bad file, bad department, an embedding-call error) leaves no partial
+  document or chunk data behind.
+- Backend: `src/core/` (`config.py`, `db.py`) — the first real use of the
+  cross-cutting `core/` folder named in the constitution's Separation of
+  Concerns amendment — providing typed `.env` config and a shared Postgres
+  connection helper for this and future modules.
+
 ## [0.4.0] - 2026-08-05
 
 Spec: `specs/004-chat-frontend-integration/spec.md`
