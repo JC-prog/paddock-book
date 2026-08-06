@@ -9,3 +9,4 @@ class Settings(BaseSettings):
     jwt_secret: str
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_days: int = 7
+    cookie_secure: bool = False

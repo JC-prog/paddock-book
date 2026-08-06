@@ -32,6 +32,20 @@ def get_user_by_email(conn: psycopg.Connection, email: str) -> dict | None:
     return {"id": row[0], "email": row[1], "password_hash": row[2], "department": row[3]}
 
 
+def get_user_by_id(conn: psycopg.Connection, user_id: str) -> dict | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, email, department FROM users WHERE id = %s",
+            (user_id,),
+        )
+        row = cur.fetchone()
+
+    if row is None:
+        return None
+
+    return {"id": row[0], "email": row[1], "department": row[2]}
+
+
 def create_refresh_token(
     conn: psycopg.Connection, user_id: str, token_hash: str, expires_at: datetime
 ) -> dict:
