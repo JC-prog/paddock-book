@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 
+import psycopg
 import pytest
 
 from src.core import embeddings as real_embeddings
@@ -60,6 +61,18 @@ def test_retrieve_context_uses_the_requesters_department():
 def test_retrieve_context_closes_the_connection_even_on_failure():
     collaborators = _retrieval_collaborators()
     collaborators["retrieval"].embed_question.side_effect = RuntimeError("Bedrock unavailable")
+
+    with pytest.raises(RuntimeError):
+        retrieve_context("A question?", "sporting", **collaborators)
+
+    collaborators["conn"].close.assert_called_once()
+
+
+def test_retrieve_context_wraps_a_database_error_as_a_runtime_error():
+    collaborators = _retrieval_collaborators()
+    collaborators["retrieval"].retrieve_relevant_chunks.side_effect = psycopg.OperationalError(
+        "connection lost"
+    )
 
     with pytest.raises(RuntimeError):
         retrieve_context("A question?", "sporting", **collaborators)
