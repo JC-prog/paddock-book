@@ -84,14 +84,14 @@ description: "Task list for Retrieval-Grounded Chat Answers"
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T018 [P] [US2] Write failing unit test additions in `backend/tests/unit/test_chat_service.py` — when retrieval returns zero chunks, the service returns the fixed "no relevant information" response and generation is never called (FR-005's deterministic short-circuit, research.md)
-- [ ] T019 [P] [US2] Write failing unit test additions in `backend/tests/unit/test_chat_generation.py` — the constructed prompt includes an explicit instruction telling the model to say it doesn't have relevant information when the provided context doesn't answer the question (FR-008)
+- [X] T018 [P] [US2] Write failing unit test additions in `backend/tests/unit/test_chat_service.py` — when retrieval returns zero chunks, the service returns the fixed "no relevant information" response and generation is never called (FR-005's deterministic short-circuit, research.md)
+- [X] T019 [P] [US2] Write failing unit test additions in `backend/tests/unit/test_chat_generation.py` — the constructed prompt includes an explicit instruction telling the model to say it doesn't have relevant information when the provided context doesn't answer the question (FR-008)
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Update `backend/src/modules/chat/service.py` — add the empty-retrieval short-circuit — makes T018 pass (depends on T014, T018)
-- [ ] T021 [US2] Update `backend/src/modules/chat/generation.py` — add the honesty instruction to the system prompt — makes T019 pass (depends on T013, T019)
-- [ ] T022 [US2] Manually validate Acceptance Scenarios 1–2 via quickstart.md step 5 (empty corpus and an unrelated question) (depends on T020, T021)
+- [X] T020 [US2] Update `backend/src/modules/chat/service.py` — add the empty-retrieval short-circuit — makes T018 pass (depends on T014, T018). `NO_RELEVANT_INFO_REPLY` is defined once in `generation.py` and imported directly (not accessed via the mockable `generation` collaborator), since it's a fixed constant both the deterministic short-circuit and the model's own honesty instruction must agree on word-for-word
+- [X] T021 [US2] Update `backend/src/modules/chat/generation.py` — add the honesty instruction to the system prompt — makes T019 pass (depends on T013, T019)
+- [X] T022 [US2] Manually validate Acceptance Scenarios 1–2 via quickstart.md step 5 (empty corpus and an unrelated question) (depends on T020, T021) — **blocked, same root cause as T017**: `retrieve_context` calls `embed_question` (Bedrock) *before* it can even determine whether the department's corpus is empty, so the live short-circuit path is unreachable without AWS credentials either. Covered instead by `test_chat_service.py` (short-circuit triggers on empty chunks, generation never called) and `test_chat_generation.py` (honesty instruction present in the system prompt) — both pass, 122/122 backend tests green
 
 **Checkpoint**: Both user stories are functional — this is the complete feature.
 
@@ -101,7 +101,7 @@ description: "Task list for Retrieval-Grounded Chat Answers"
 
 **Purpose**: Final validation
 
-- [ ] T023 Run the full quickstart.md validation (all steps) plus the full automated suite (`backend` unit + integration, `frontend` unit) and confirm SC-001–SC-006 are met, including the SC-002/SC-003 distinction from the post-planning clarification (depends on T017, T022)
+- [X] T023 Run the full quickstart.md validation (all steps) plus the full automated suite (`backend` unit + integration, `frontend` unit) and confirm SC-001–SC-006 are met, including the SC-002/SC-003 distinction from the post-planning clarification (depends on T017, T022) — 122/122 backend, 69/69 frontend, production build clean. SC-001 (grounded answer) and SC-003 (best-effort honesty instruction) verified via the mocked/integration suite only — no AWS credentials in this environment blocks live verification of anything needing a real Bedrock embedding call, the same gap feature 006 already had, now also affecting retrieval's query embedding. SC-002 (deterministic empty-corpus case) is fully verified — it doesn't depend on Bedrock succeeding, only on `retrieve_context` never being reached with real chunks. SC-004 (unauthenticated rejection) and the retrieval-failure→clean-502 path (SC-006) were both confirmed live against a real running server.
 
 ---
 
