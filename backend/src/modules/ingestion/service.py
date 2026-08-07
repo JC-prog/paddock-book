@@ -39,5 +39,6 @@ def ingest(
         ]
 
         repository.write_document(conn, title, department, embedded_chunks)
+        conn.commit()
     finally:
         conn.close()
