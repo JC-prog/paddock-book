@@ -90,16 +90,16 @@ description: "Task list for JWT-Based Authentication System"
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T024 [P] [US2] Write failing unit tests in `backend/tests/unit/test_auth_service.py` for `logout()` — repository mocked; revokes the refresh token matching the provided cookie value; is a no-op (not an error) when no valid refresh token is provided
-- [ ] T025 [US2] Write failing integration test additions in `backend/tests/integration/test_auth_api.py` — real flow: login, then `POST /logout` returns `204` and clears the cookie, then a subsequent `POST /refresh` with the old cookie returns `401`
-- [ ] T026 [P] [US2] Write a failing Vitest test extending `frontend/src/app/shared/navbar/navbar.component.spec.ts` — a logged-in state shows a logout action; clicking it calls the auth service's logout and returns to a logged-out state
+- [X] T024 [P] [US2] Write failing unit tests in `backend/tests/unit/test_auth_service.py` for `logout()` — repository mocked; revokes the refresh token matching the provided cookie value; is a no-op (not an error) when no valid refresh token is provided
+- [X] T025 [US2] Write failing integration test additions in `backend/tests/integration/test_auth_api.py` — real flow: login, then `POST /logout` returns `204` and clears the cookie, then a subsequent `POST /refresh` with the old cookie returns `401`
+- [X] T026 [P] [US2] Write a failing Vitest test extending `frontend/src/app/shared/navbar/navbar.component.spec.ts` — a logged-in state shows a logout action; clicking it calls the auth service's logout and returns to a logged-out state
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Implement `logout()` in `backend/src/modules/auth/service.py` — makes T024 pass (depends on T017, T024)
-- [ ] T028 [US2] Implement `POST /v1/auth/logout` in `backend/src/modules/auth/router.py` per contracts/auth-api.md — makes T025 pass (depends on T027, T025)
-- [ ] T029 [US2] Add the logout action to `frontend/src/app/shared/navbar/navbar.component.ts` (+ template), calling `auth.service.ts`'s logout — makes T026 pass (depends on T019, T026)
-- [ ] T030 [US2] Manually validate Acceptance Scenarios 1–2 via quickstart.md steps 5 and 6's logout portion (depends on T028, T029)
+- [X] T027 [US2] Implement `logout()` in `backend/src/modules/auth/service.py` — makes T024 pass (depends on T017, T024)
+- [X] T028 [US2] Implement `POST /v1/auth/logout` in `backend/src/modules/auth/router.py` per contracts/auth-api.md — makes T025 pass (depends on T027, T025)
+- [X] T029 [US2] Add the logout action to `frontend/src/app/shared/navbar/navbar.component.ts` (+ template), calling `auth.service.ts`'s logout — makes T026 pass (depends on T019, T026). Also added `AuthService.logout()` itself (not a separate task, but the natural home for the HTTP call — clears client-side session state even if the backend call fails, so the UI never gets stuck "logged in" after a network blip)
+- [X] T030 [US2] Manually validate Acceptance Scenarios 1–2 via quickstart.md steps 5 and 6's logout portion (depends on T028, T029) — validated live: real backend, real seeded account; logout → 204 + cookie cleared; refresh after logout → 401 (genuine revocation, not just client-side); logout with no session at all → 204 no-op, not an error
 
 **Checkpoint**: Login and Logout are both functional and independently testable.
 
