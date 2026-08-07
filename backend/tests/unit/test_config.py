@@ -93,3 +93,24 @@ def test_settings_reads_refresh_token_ttl_days_from_env(monkeypatch):
     settings = Settings()
 
     assert settings.refresh_token_ttl_days == 14
+
+
+def test_settings_defaults_cookie_secure_to_false_when_not_set(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.delenv("COOKIE_SECURE", raising=False)
+
+    settings = Settings()
+
+    # False by default so the refresh cookie still round-trips over plain
+    # http://localhost in local dev — a Secure cookie is silently dropped by
+    # the browser (and by httpx's TestClient) over a non-HTTPS connection.
+    assert settings.cookie_secure is False
+
+
+def test_settings_reads_cookie_secure_from_env(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.setenv("COOKIE_SECURE", "true")
+
+    settings = Settings()
+
+    assert settings.cookie_secure is True

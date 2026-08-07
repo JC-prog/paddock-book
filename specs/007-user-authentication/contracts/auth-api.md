@@ -21,8 +21,11 @@ Content-Type: application/json
 | `department` | string | yes | One of `sporting`, `technical`, `financial` (FR-006) |
 
 **Success**: `201 Created`, `Content-Type: application/json`, plus a
-`Set-Cookie: refresh_token=...; HttpOnly; Secure; SameSite=Lax; Path=/v1/auth`
-header:
+`Set-Cookie: refresh_token=...; HttpOnly; SameSite=Lax; Path=/v1/auth`
+header (`Secure` is added too whenever `COOKIE_SECURE=true`, which MUST be
+set once actually deployed over HTTPS — it defaults to `false` for local
+dev, since a `Secure` cookie is silently dropped by the browser, and by
+`TestClient`, over plain `http://localhost`):
 
 ```json
 {
