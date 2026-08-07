@@ -21,8 +21,13 @@ def retrieve_context(
     (contracts/chat-api.md's "LLM provider failure" guarantee)."""
     settings = settings_factory()
     try:
-        bedrock_client = embeddings.get_bedrock_client(settings.aws_region)
-        query_embedding = retrieval.embed_question(question, bedrock_client)
+        query_embedding = embeddings.embed(
+            question,
+            provider=settings.embedding_provider,
+            region_name=settings.aws_region,
+            ollama_host=settings.ollama_host,
+            ollama_model=settings.ollama_embedding_model,
+        )
         return retrieval.retrieve_relevant_chunks(conn, department, query_embedding)
     except psycopg.Error as exc:
         # Normalize alongside core/embeddings.py's Bedrock-failure wrapping so

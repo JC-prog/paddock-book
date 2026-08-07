@@ -1,12 +1,6 @@
 import psycopg
 
-from src.core.embeddings import embed_text
-
 RETRIEVAL_LIMIT = 5
-
-
-def embed_question(text: str, client) -> list[float]:
-    return embed_text(text, client)
 
 
 def retrieve_relevant_chunks(

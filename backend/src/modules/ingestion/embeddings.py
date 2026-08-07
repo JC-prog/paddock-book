@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.core.embeddings import embed_text, get_bedrock_client
+from src.core import embeddings as embeddings_module
 from src.modules.ingestion.chunker import Chunk
 
 
@@ -11,6 +11,12 @@ class EmbeddedChunk:
     embedding: list[float]
 
 
-def embed_chunk(chunk: Chunk, client) -> EmbeddedChunk:
-    embedding = embed_text(chunk.text, client)
+def embed_chunk(chunk: Chunk, *, settings, embeddings=embeddings_module) -> EmbeddedChunk:
+    embedding = embeddings.embed(
+        chunk.text,
+        provider=settings.embedding_provider,
+        region_name=settings.aws_region,
+        ollama_host=settings.ollama_host,
+        ollama_model=settings.ollama_embedding_model,
+    )
     return EmbeddedChunk(text=chunk.text, order=chunk.order, embedding=embedding)
