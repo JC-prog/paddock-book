@@ -4,7 +4,7 @@ import pytest
 
 from src.core import security as real_security
 from src.modules.auth import repository as real_repository
-from src.modules.auth.service import login, refresh_access_token
+from src.modules.auth.service import login, logout, refresh_access_token
 
 
 def _settings_factory(**overrides):
@@ -108,3 +108,32 @@ def test_refresh_access_token_raises_for_invalid_or_expired_token():
         refresh_access_token("not-a-valid-refresh-token", **collaborators)
 
     collaborators["repository"].create_refresh_token.assert_not_called()
+
+
+def test_logout_revokes_the_matching_refresh_token():
+    collaborators = _collaborators()
+
+    logout(
+        "a-raw-refresh-token",
+        conn=collaborators["conn"],
+        repository=collaborators["repository"],
+        security=collaborators["security"],
+    )
+
+    collaborators["security"].hash_token.assert_called_once_with("a-raw-refresh-token")
+    collaborators["repository"].revoke_refresh_token.assert_called_once_with(
+        collaborators["conn"], "a-hashed-refresh-token"
+    )
+
+
+def test_logout_is_a_no_op_when_no_refresh_token_provided():
+    collaborators = _collaborators()
+
+    logout(
+        None,
+        conn=collaborators["conn"],
+        repository=collaborators["repository"],
+        security=collaborators["security"],
+    )
+
+    collaborators["repository"].revoke_refresh_token.assert_not_called()

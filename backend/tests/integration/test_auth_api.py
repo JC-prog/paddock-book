@@ -150,3 +150,25 @@ def test_refresh_returns_401_after_the_old_token_was_already_rotated(client):
         assert response.status_code == 401
     finally:
         _cleanup(email)
+
+
+def test_logout_returns_204_and_revokes_the_session(client):
+    email = _unique_email()
+    _seed_user(email, "correct-password")
+
+    try:
+        client.post("/v1/auth/login", json={"email": email, "password": "correct-password"})
+
+        logout_response = client.post("/v1/auth/logout")
+        assert logout_response.status_code == 204
+
+        refresh_response = client.post("/v1/auth/refresh")
+        assert refresh_response.status_code == 401
+    finally:
+        _cleanup(email)
+
+
+def test_logout_is_a_no_op_without_a_valid_cookie(client):
+    response = client.post("/v1/auth/logout")
+
+    assert response.status_code == 204
