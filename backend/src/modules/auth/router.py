@@ -2,10 +2,11 @@ from fastapi import APIRouter, Cookie, HTTPException, Response, status
 
 from src.core.config import Settings
 from src.core.db import get_connection
-from src.modules.auth.schemas import AuthResponse, LoginRequest, UserPublic
+from src.modules.auth.schemas import AuthResponse, LoginRequest, RegisterRequest, UserPublic
 from src.modules.auth.service import login as login_service
 from src.modules.auth.service import logout as logout_service
 from src.modules.auth.service import refresh_access_token as refresh_service
+from src.modules.auth.service import register as register_service
 
 router = APIRouter(prefix="/v1/auth")
 
@@ -37,6 +38,23 @@ def login(payload: LoginRequest, response: Response) -> AuthResponse:
         result = login_service(payload.email, payload.password, conn=conn, settings_factory=lambda: settings)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+    finally:
+        conn.close()
+
+    _set_refresh_cookie(response, result["refresh_token"], settings)
+    return AuthResponse(access_token=result["access_token"], user=UserPublic(**result["user"]))
+
+
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+def register(payload: RegisterRequest, response: Response) -> AuthResponse:
+    settings = Settings()
+    conn = get_connection()
+    try:
+        result = register_service(
+            payload.email, payload.password, payload.department, conn=conn, settings_factory=lambda: settings
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
     finally:
         conn.close()
 
