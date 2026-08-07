@@ -113,16 +113,16 @@ description: "Task list for JWT-Based Authentication System"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T031 [P] [US3] Write failing unit tests in `backend/tests/unit/test_auth_service.py` for `register()` — repository and security mocked; a duplicate email is rejected before any password hashing or write happens; an empty password is rejected (FR-012); a valid submission hashes the password before it reaches the repository and assigns the given department
-- [ ] T032 [US3] Write failing integration test additions in `backend/tests/integration/test_auth_api.py` — real flow: `POST /register` returns `201` with `access_token`/`user` and a refresh cookie on success; returns `422` for a duplicate email, an empty password, or an invalid department, with no row written in either case
-- [ ] T033 [P] [US3] Write failing Vitest tests in `frontend/src/app/features/auth/register/register.component.spec.ts` — submitting a valid registration navigates into the app already logged in; a duplicate-email response shows a clear error and keeps the user on the registration page
+- [X] T031 [P] [US3] Write failing unit tests in `backend/tests/unit/test_auth_service.py` for `register()` — repository and security mocked; a duplicate email is rejected before any password hashing or write happens; an empty password is rejected (FR-012); a valid submission hashes the password before it reaches the repository and assigns the given department
+- [X] T032 [US3] Write failing integration test additions in `backend/tests/integration/test_auth_api.py` — real flow: `POST /register` returns `201` with `access_token`/`user` and a refresh cookie on success; returns `422` for a duplicate email, an empty password, or an invalid department, with no row written in either case
+- [X] T033 [P] [US3] Write failing Vitest tests in `frontend/src/app/features/auth/register/register.component.spec.ts` — submitting a valid registration navigates into the app already logged in; a duplicate-email response shows a clear error and keeps the user on the registration page. Also added a failing `AuthService.register()` test to `auth.service.spec.ts` — a gap in the original task breakdown (login/refresh/logout each got their own service-level test; register hadn't)
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] Implement `register()` in `backend/src/modules/auth/service.py` — makes T031 pass (depends on T007, T010, T031)
-- [ ] T035 [US3] Implement `POST /v1/auth/register` in `backend/src/modules/auth/router.py` per contracts/auth-api.md — makes T032 pass (depends on T034, T032)
-- [ ] T036 [US3] Implement `frontend/src/app/features/auth/register/register.component.ts` (+ template) — makes T033 pass (depends on T019); wire the `/register` route
-- [ ] T037 [US3] Manually validate Acceptance Scenarios 1–3 via quickstart.md steps 3 and 6's register portion (depends on T035, T036)
+- [X] T034 [US3] Implement `register()` in `backend/src/modules/auth/service.py` — makes T031 pass (depends on T007, T010, T031). Order is deliberate: empty-password check (free, in-memory) → duplicate-email check (DB read) → hash → write, cheapest rejection first, matching how `login`/`refresh` are structured
+- [X] T035 [US3] Implement `POST /v1/auth/register` in `backend/src/modules/auth/router.py` per contracts/auth-api.md — makes T032 pass (depends on T034, T032). Department validation is enforced at the Pydantic schema layer (`Literal["sporting","technical","financial"]`), so an invalid department never reaches the service at all
+- [X] T036 [US3] Implement `frontend/src/app/features/auth/register/register.component.ts` (+ template) — makes T033 pass (depends on T019); wire the `/register` route. Also implemented `AuthService.register()` itself (T033's gap)
+- [X] T037 [US3] Manually validate Acceptance Scenarios 1–3 via quickstart.md steps 3 and 6's register portion (depends on T035, T036) — validated live: register → 201 + cookie; duplicate email/empty password/invalid department → 422, no row written; newly registered account logs in immediately
 
 **Checkpoint**: All three stories are functional — this is the complete feature.
 

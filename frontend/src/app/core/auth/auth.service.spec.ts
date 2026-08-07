@@ -73,4 +73,37 @@ describe('AuthService', () => {
     expect(service.getAccessToken()).toBeNull();
     expect(service.currentUser()).toBeNull();
   });
+
+  it('register() stores the access token in memory and exposes the current user', () => {
+    service.register('newdriver@team.example', 'secret', 'technical').subscribe();
+
+    const req = httpMock.expectOne('http://localhost:8000/v1/auth/register');
+    expect(req.request.withCredentials).toBe(true);
+    expect(req.request.body).toEqual({
+      email: 'newdriver@team.example',
+      password: 'secret',
+      department: 'technical'
+    });
+    req.flush({
+      access_token: 'a-new-access-token',
+      user: { id: 'u2', email: 'newdriver@team.example', department: 'technical' }
+    });
+
+    expect(service.getAccessToken()).toBe('a-new-access-token');
+    expect(service.currentUser()).toEqual({
+      id: 'u2',
+      email: 'newdriver@team.example',
+      department: 'technical'
+    });
+  });
+
+  it('register() propagates the error and leaves the user logged out on failure (e.g. duplicate email)', () => {
+    service.register('taken@team.example', 'secret', 'sporting').subscribe({ error: () => {} });
+
+    const req = httpMock.expectOne('http://localhost:8000/v1/auth/register');
+    req.flush({ detail: 'duplicate' }, { status: 422, statusText: 'Unprocessable Entity' });
+
+    expect(service.getAccessToken()).toBeNull();
+    expect(service.currentUser()).toBeNull();
+  });
 });

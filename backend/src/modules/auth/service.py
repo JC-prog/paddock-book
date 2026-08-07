@@ -6,6 +6,8 @@ from src.modules.auth import repository as repository_module
 
 _GENERIC_LOGIN_ERROR = "Invalid email or password"
 _GENERIC_REFRESH_ERROR = "Invalid or expired refresh token"
+_EMPTY_PASSWORD_ERROR = "Password must not be empty"
+_DUPLICATE_EMAIL_ERROR = "An account with this email already exists"
 
 
 def _issue_session(user: dict, *, conn, repository, security, settings) -> dict:
@@ -79,3 +81,26 @@ def logout(
     token_hash = security.hash_token(refresh_token_raw)
     repository.revoke_refresh_token(conn, token_hash)
     conn.commit()
+
+
+def register(
+    email: str,
+    password: str,
+    department: str,
+    *,
+    conn,
+    repository=repository_module,
+    security=security_module,
+    settings_factory=Settings,
+) -> dict:
+    if not password:
+        raise ValueError(_EMPTY_PASSWORD_ERROR)
+
+    if repository.get_user_by_email(conn, email) is not None:
+        raise ValueError(_DUPLICATE_EMAIL_ERROR)
+
+    settings = settings_factory()
+    password_hash = security.hash_password(password)
+    user = repository.create_user(conn, email, password_hash, department)
+
+    return _issue_session(user, conn=conn, repository=repository, security=security, settings=settings)

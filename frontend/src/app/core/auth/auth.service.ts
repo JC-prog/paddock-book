@@ -54,6 +54,19 @@ export class AuthService {
       );
   }
 
+  register(email: string, password: string, department: string): Observable<AuthUser> {
+    return this.http
+      .post<AuthResponseBody>(
+        `${AUTH_API_BASE}/register`,
+        { email, password, department },
+        { withCredentials: true }
+      )
+      .pipe(
+        tap((response) => this.setSession(response)),
+        map((response) => response.user)
+      );
+  }
+
   logout(): Observable<void> {
     return this.http.post<void>(`${AUTH_API_BASE}/logout`, {}, { withCredentials: true }).pipe(
       tap(() => this.clearSession()),

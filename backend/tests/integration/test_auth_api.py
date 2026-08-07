@@ -172,3 +172,92 @@ def test_logout_is_a_no_op_without_a_valid_cookie(client):
     response = client.post("/v1/auth/logout")
 
     assert response.status_code == 204
+
+
+def test_register_returns_201_with_access_token_and_refresh_cookie(client):
+    email = _unique_email()
+
+    try:
+        response = client.post(
+            "/v1/auth/register",
+            json={"email": email, "password": "a-real-password", "department": "financial"},
+        )
+
+        assert response.status_code == 201
+        body = response.json()
+        assert "access_token" in body
+        assert body["user"]["email"] == email
+        assert body["user"]["department"] == "financial"
+        assert "refresh_token" in response.cookies
+    finally:
+        _cleanup(email)
+
+
+def test_register_returns_422_for_a_duplicate_email(client):
+    email = _unique_email()
+    _seed_user(email, "correct-password")
+
+    try:
+        response = client.post(
+            "/v1/auth/register",
+            json={"email": email, "password": "another-password", "department": "sporting"},
+        )
+
+        assert response.status_code == 422
+
+        with _connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT count(*) FROM users WHERE email = %s", (email,))
+                (count,) = cur.fetchone()
+        assert count == 1
+    finally:
+        _cleanup(email)
+
+
+def test_register_returns_422_for_an_empty_password(client):
+    email = _unique_email()
+
+    response = client.post(
+        "/v1/auth/register", json={"email": email, "password": "", "department": "sporting"}
+    )
+
+    assert response.status_code == 422
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM users WHERE email = %s", (email,))
+            (count,) = cur.fetchone()
+    assert count == 0
+
+
+def test_register_returns_422_for_an_invalid_department(client):
+    email = _unique_email()
+
+    response = client.post(
+        "/v1/auth/register",
+        json={"email": email, "password": "a-real-password", "department": "engine"},
+    )
+
+    assert response.status_code == 422
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM users WHERE email = %s", (email,))
+            (count,) = cur.fetchone()
+    assert count == 0
+
+
+def test_registered_account_can_immediately_log_in(client):
+    email = _unique_email()
+
+    try:
+        client.post(
+            "/v1/auth/register",
+            json={"email": email, "password": "a-real-password", "department": "sporting"},
+        )
+
+        login_response = client.post(
+            "/v1/auth/login", json={"email": email, "password": "a-real-password"}
+        )
+
+        assert login_response.status_code == 200
+    finally:
+        _cleanup(email)
