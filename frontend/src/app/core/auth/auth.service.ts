@@ -54,6 +54,16 @@ export class AuthService {
       );
   }
 
+  logout(): Observable<void> {
+    return this.http.post<void>(`${AUTH_API_BASE}/logout`, {}, { withCredentials: true }).pipe(
+      tap(() => this.clearSession()),
+      catchError(() => {
+        this.clearSession();
+        return of(undefined);
+      })
+    );
+  }
+
   private setSession(response: AuthResponseBody): void {
     this._accessToken.set(response.access_token);
     this._currentUser.set(response.user);

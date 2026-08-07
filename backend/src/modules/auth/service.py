@@ -64,3 +64,18 @@ def refresh_access_token(
     repository.revoke_refresh_token(conn, token_hash)
 
     return _issue_session(user, conn=conn, repository=repository, security=security, settings=settings)
+
+
+def logout(
+    refresh_token_raw: str | None,
+    *,
+    conn,
+    repository=repository_module,
+    security=security_module,
+) -> None:
+    if refresh_token_raw is None:
+        return
+
+    token_hash = security.hash_token(refresh_token_raw)
+    repository.revoke_refresh_token(conn, token_hash)
+    conn.commit()

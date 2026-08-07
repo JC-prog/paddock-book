@@ -4,6 +4,7 @@ from src.core.config import Settings
 from src.core.db import get_connection
 from src.modules.auth.schemas import AuthResponse, LoginRequest, UserPublic
 from src.modules.auth.service import login as login_service
+from src.modules.auth.service import logout as logout_service
 from src.modules.auth.service import refresh_access_token as refresh_service
 
 router = APIRouter(prefix="/v1/auth")
@@ -24,6 +25,10 @@ def _set_refresh_cookie(response: Response, token: str, settings: Settings) -> N
     )
 
 
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(key=REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
+
+
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginRequest, response: Response) -> AuthResponse:
     settings = Settings()
@@ -37,6 +42,17 @@ def login(payload: LoginRequest, response: Response) -> AuthResponse:
 
     _set_refresh_cookie(response, result["refresh_token"], settings)
     return AuthResponse(access_token=result["access_token"], user=UserPublic(**result["user"]))
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response, refresh_token: str | None = Cookie(default=None)) -> None:
+    conn = get_connection()
+    try:
+        logout_service(refresh_token, conn=conn)
+    finally:
+        conn.close()
+
+    _clear_refresh_cookie(response)
 
 
 @router.post("/refresh", response_model=AuthResponse)
