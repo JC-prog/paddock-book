@@ -132,7 +132,7 @@ description: "Task list for JWT-Based Authentication System"
 
 **Purpose**: Final validation
 
-- [ ] T038 Apply `db/init/002_auth_schema.sql` to the already-running local database (quickstart.md step 1), then run the full quickstart.md validation (all steps) plus the full automated suite (`backend` unit + integration, `frontend` unit) and confirm SC-001–SC-006 are met (depends on T023, T030, T037)
+- [X] T038 Apply `db/init/002_auth_schema.sql` to the already-running local database (quickstart.md step 1), then run the full quickstart.md validation (all steps) plus the full automated suite (`backend` unit + integration, `frontend` unit) and confirm SC-001–SC-006 are met (depends on T023, T030, T037) — run on `main` post-merge, the first time all three stories were validated together as one combined system rather than on separate branches. 96/96 backend, 67/67 frontend, production build clean. All six success criteria confirmed live: SC-001 (single-attempt login), SC-002 (logout genuinely revokes — refresh after logout returns 401), SC-003 (wrong-password and unknown-email return byte-identical responses), SC-004 (stored password is a real bcrypt hash, confirmed via direct DB query, not just unit tests), SC-005 (registered department round-trips correctly), SC-006 (refresh — the mechanism behind reload-persistence — issues a valid new session)
 
 ---
 
