@@ -1,3 +1,5 @@
+import psycopg
+
 from src.core import embeddings as embeddings_module
 from src.core.config import Settings
 from src.modules.chat import generation as generation_module
@@ -22,6 +24,11 @@ def retrieve_context(
         bedrock_client = embeddings.get_bedrock_client(settings.aws_region)
         query_embedding = retrieval.embed_question(question, bedrock_client)
         return retrieval.retrieve_relevant_chunks(conn, department, query_embedding)
+    except psycopg.Error as exc:
+        # Normalize alongside core/embeddings.py's Bedrock-failure wrapping so
+        # the router's single `except RuntimeError` covers both failure modes
+        # the contract promises a 502 for (embedding call or DB unreachable).
+        raise RuntimeError(f"Database retrieval failed: {exc}") from exc
     finally:
         conn.close()
 
