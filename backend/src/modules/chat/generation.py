@@ -1,8 +1,13 @@
 import ollama
 
+NO_RELEVANT_INFO_REPLY = "I don't have relevant information to answer that question."
+
 SYSTEM_PROMPT = (
     "You are a regulation assistant for F1 team staff. Answer the "
-    "question using only the following regulation excerpts."
+    "question using only the following regulation excerpts. If the "
+    "excerpts don't actually answer the question, respond with exactly: "
+    f'"{NO_RELEVANT_INFO_REPLY}" rather than guessing or using general '
+    "knowledge."
 )
 
 

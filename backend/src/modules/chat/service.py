@@ -2,6 +2,7 @@ from src.core import embeddings as embeddings_module
 from src.core.config import Settings
 from src.modules.chat import generation as generation_module
 from src.modules.chat import retrieval as retrieval_module
+from src.modules.chat.generation import NO_RELEVANT_INFO_REPLY
 
 
 def retrieve_context(
@@ -32,6 +33,13 @@ async def generate_reply(
     settings_factory=Settings,
     generation=generation_module,
 ):
+    if not chunks:
+        # Deterministic short-circuit (FR-005) — the requester's department
+        # has no ingested content at all, so there's nothing to guess from;
+        # skip the LLM call entirely rather than relying on it to refuse.
+        yield NO_RELEVANT_INFO_REPLY
+        return
+
     settings = settings_factory()
 
     async for fragment in generation.generate_answer(
