@@ -21,8 +21,7 @@ def _collaborators(text="Some regulation text.", chunks=None, title_exists=False
     chunker.chunk_text.return_value = chunks
 
     embeddings = MagicMock(spec=real_embeddings)
-    embeddings.get_bedrock_client.return_value = MagicMock()
-    embeddings.embed_chunk.side_effect = lambda chunk, client: EmbeddedChunk(
+    embeddings.embed_chunk.side_effect = lambda chunk, **kwargs: EmbeddedChunk(
         text=chunk.text, order=chunk.order, embedding=[0.1] * 1024
     )
 
@@ -30,7 +29,14 @@ def _collaborators(text="Some regulation text.", chunks=None, title_exists=False
     repository.title_exists.return_value = title_exists
 
     connection_factory = MagicMock(return_value=MagicMock())
-    settings_factory = MagicMock(return_value=MagicMock(aws_region="us-east-1"))
+    settings_factory = MagicMock(
+        return_value=MagicMock(
+            aws_region="us-east-1",
+            embedding_provider="bedrock",
+            ollama_host="http://localhost:11434",
+            ollama_embedding_model="mxbai-embed-large",
+        )
+    )
 
     return {
         "parser": parser,

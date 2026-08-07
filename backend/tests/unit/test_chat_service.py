@@ -13,7 +13,13 @@ pytestmark = pytest.mark.anyio
 
 
 def _settings_factory(**overrides):
-    defaults = {"aws_region": "us-east-1", "ollama_model": "llama3.2", "ollama_host": "http://localhost:11434"}
+    defaults = {
+        "aws_region": "us-east-1",
+        "ollama_model": "llama3.2",
+        "ollama_host": "http://localhost:11434",
+        "embedding_provider": "bedrock",
+        "ollama_embedding_model": "mxbai-embed-large",
+    }
     defaults.update(overrides)
     return MagicMock(return_value=MagicMock(**defaults))
 
@@ -23,10 +29,9 @@ def _retrieval_collaborators(chunks=None):
         chunks = [{"document_title": "Sporting Regs", "chunk_text": "Cars must have four wheels."}]
 
     embeddings = MagicMock(spec=real_embeddings)
-    embeddings.get_bedrock_client.return_value = MagicMock()
+    embeddings.embed.return_value = [0.1] * 1024
 
     retrieval = MagicMock(spec=real_retrieval)
-    retrieval.embed_question.return_value = [0.1] * 1024
     retrieval.retrieve_relevant_chunks.return_value = chunks
 
     return {
@@ -42,9 +47,15 @@ def test_retrieve_context_embeds_the_question_and_retrieves_department_scoped_ch
 
     result = retrieve_context("How many wheels?", "sporting", **collaborators)
 
-    collaborators["retrieval"].embed_question.assert_called_once()
+    collaborators["embeddings"].embed.assert_called_once_with(
+        "How many wheels?",
+        provider="bedrock",
+        region_name="us-east-1",
+        ollama_host="http://localhost:11434",
+        ollama_model="mxbai-embed-large",
+    )
     collaborators["retrieval"].retrieve_relevant_chunks.assert_called_once_with(
-        collaborators["conn"], "sporting", collaborators["retrieval"].embed_question.return_value
+        collaborators["conn"], "sporting", collaborators["embeddings"].embed.return_value
     )
     assert result == collaborators["retrieval"].retrieve_relevant_chunks.return_value
 
@@ -60,7 +71,7 @@ def test_retrieve_context_uses_the_requesters_department():
 
 def test_retrieve_context_closes_the_connection_even_on_failure():
     collaborators = _retrieval_collaborators()
-    collaborators["retrieval"].embed_question.side_effect = RuntimeError("Bedrock unavailable")
+    collaborators["embeddings"].embed.side_effect = RuntimeError("Bedrock unavailable")
 
     with pytest.raises(RuntimeError):
         retrieve_context("A question?", "sporting", **collaborators)
