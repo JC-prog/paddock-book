@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.modules.chat.generation import generate_answer
+from src.modules.chat.generation import NO_RELEVANT_INFO_REPLY, generate_answer
 
 pytestmark = pytest.mark.anyio
 
@@ -79,3 +79,18 @@ async def test_generate_answer_uses_the_configured_host():
         pass
 
     client_factory.assert_called_once_with("http://ollama.internal:11434")
+
+
+async def test_generate_answer_prompt_instructs_the_model_to_admit_when_context_does_not_answer():
+    client_factory, client = _mock_client_factory(["An answer."])
+    chunks = [{"document_title": "Sporting Regs", "chunk_text": "Cars must have four wheels."}]
+
+    async for _ in generate_answer(
+        "A question?", chunks, model="llama3.2", host="http://localhost:11434", client_factory=client_factory
+    ):
+        pass
+
+    _, kwargs = client.chat.call_args
+    messages = kwargs["messages"]
+    system_message = next(m["content"] for m in messages if m["role"] == "system")
+    assert NO_RELEVANT_INFO_REPLY in system_message

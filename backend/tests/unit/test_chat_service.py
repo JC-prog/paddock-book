@@ -5,6 +5,7 @@ import pytest
 from src.core import embeddings as real_embeddings
 from src.modules.chat import generation as real_generation
 from src.modules.chat import retrieval as real_retrieval
+from src.modules.chat.generation import NO_RELEVANT_INFO_REPLY
 from src.modules.chat.service import generate_reply, retrieve_context
 
 pytestmark = pytest.mark.anyio
@@ -94,3 +95,17 @@ async def test_generate_reply_yields_the_generation_module_output():
     ]
 
     assert result == ["Four", " wheels."]
+
+
+async def test_generate_reply_returns_the_no_relevant_info_reply_without_calling_generation_when_no_chunks_were_retrieved():
+    generation = MagicMock(spec=real_generation)
+
+    result = [
+        fragment
+        async for fragment in generate_reply(
+            "An unrelated question?", [], settings_factory=_settings_factory(), generation=generation
+        )
+    ]
+
+    generation.generate_answer.assert_not_called()
+    assert result == [NO_RELEVANT_INFO_REPLY]
