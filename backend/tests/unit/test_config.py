@@ -114,3 +114,39 @@ def test_settings_reads_cookie_secure_from_env(monkeypatch):
     settings = Settings()
 
     assert settings.cookie_secure is True
+
+
+def test_settings_defaults_ollama_model_when_not_set(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+
+    settings = Settings()
+
+    assert settings.ollama_model == "llama3.2"
+
+
+def test_settings_reads_ollama_model_from_env(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.setenv("OLLAMA_MODEL", "phi3")
+
+    settings = Settings()
+
+    assert settings.ollama_model == "phi3"
+
+
+def test_settings_defaults_ollama_host_when_not_set(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.delenv("OLLAMA_HOST", raising=False)
+
+    settings = Settings()
+
+    assert settings.ollama_host == "http://localhost:11434"
+
+
+def test_settings_reads_ollama_host_from_env(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.setenv("OLLAMA_HOST", "http://ollama.internal:11434")
+
+    settings = Settings()
+
+    assert settings.ollama_host == "http://ollama.internal:11434"

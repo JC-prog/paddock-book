@@ -1,10 +1,16 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 from sse_starlette.sse import AppStatus
 
+from src.core.security import get_current_user
 from src.main import app
 
 client = TestClient(app)
+
+_FAKE_USER = {"sub": "user-123", "email": "driver@team.example", "department": "sporting"}
+_FAKE_CHUNKS = [{"document_title": "Sporting Regs", "chunk_text": "Cars must have four wheels."}]
 
 
 @pytest.fixture(autouse=True)
@@ -16,6 +22,12 @@ def _reset_sse_starlette_app_status():
     yield
 
 
+@pytest.fixture(autouse=True)
+def _clear_dependency_overrides():
+    yield
+    app.dependency_overrides.clear()
+
+
 def _data_events(response) -> list[str]:
     events: list[str] = []
     for line in response.iter_lines():
@@ -24,32 +36,87 @@ def _data_events(response) -> list[str]:
     return events
 
 
-def test_chat_streams_placeholder_as_multiple_discrete_events():
-    with client.stream("POST", "/v1/chat", json={"message": "hi"}) as response:
-        assert response.status_code == 200
-        assert response.headers["content-type"].startswith("text/event-stream")
-
-        events = _data_events(response)
-
-    assert len(events) > 1
-    assert " ".join(events) == "Hello, this is a test response."
+def _authenticated():
+    app.dependency_overrides[get_current_user] = lambda: _FAKE_USER
 
 
-def test_chat_rejects_empty_message():
-    response = client.post("/v1/chat", json={"message": ""})
+def _fake_retrieve_context(message, department, *, conn):
+    assert department == "sporting"
+    return _FAKE_CHUNKS
+
+
+async def _fake_generate_reply(message, chunks):
+    assert chunks == _FAKE_CHUNKS
+    yield "Real"
+    yield "answer"
+
+
+def test_chat_rejects_unauthenticated_requests():
+    response = client.post("/v1/chat", json={"message": "hi"})
+
+    assert response.status_code == 401
+
+
+def test_chat_rejects_empty_message_even_when_authenticated():
+    _authenticated()
+
+    with patch("src.modules.chat.router.get_connection", MagicMock()):
+        response = client.post("/v1/chat", json={"message": ""})
 
     assert response.status_code == 422
 
 
-def test_chat_rejects_whitespace_only_message():
-    response = client.post("/v1/chat", json={"message": "   "})
+def test_chat_rejects_whitespace_only_message_even_when_authenticated():
+    _authenticated()
+
+    with patch("src.modules.chat.router.get_connection", MagicMock()):
+        response = client.post("/v1/chat", json={"message": "   "})
 
     assert response.status_code == 422
+
+
+def test_chat_streams_the_generated_reply_for_an_authenticated_request():
+    _authenticated()
+
+    with (
+        patch("src.modules.chat.router.get_connection", MagicMock()),
+        patch("src.modules.chat.router.retrieve_context", _fake_retrieve_context),
+        patch("src.modules.chat.router.generate_reply", _fake_generate_reply),
+    ):
+        with client.stream("POST", "/v1/chat", json={"message": "hi"}) as response:
+            assert response.status_code == 200
+            assert response.headers["content-type"].startswith("text/event-stream")
+            events = _data_events(response)
+
+    assert events == ["Real", "answer"]
+
+
+def test_chat_returns_a_clean_error_without_opening_a_stream_when_retrieval_fails():
+    _authenticated()
+
+    def _failing_retrieve_context(message, department, *, conn):
+        raise RuntimeError("Bedrock embedding call failed: Unable to locate credentials")
+
+    with (
+        patch("src.modules.chat.router.get_connection", MagicMock()),
+        patch("src.modules.chat.router.retrieve_context", _failing_retrieve_context),
+    ):
+        response = client.post("/v1/chat", json={"message": "hi"})
+
+    assert response.status_code == 502
+    assert not response.headers["content-type"].startswith("text/event-stream")
 
 
 def test_chat_does_not_raise_on_early_client_disconnect():
-    with client.stream("POST", "/v1/chat", json={"message": "hi"}) as response:
-        assert response.status_code == 200
-        next(response.iter_lines())
-        # Exiting the `with` block here closes the connection mid-stream;
-        # the assertion is simply that doing so raises nothing.
+    _authenticated()
+
+    with (
+        patch("src.modules.chat.router.get_connection", MagicMock()),
+        patch("src.modules.chat.router.retrieve_context", _fake_retrieve_context),
+        patch("src.modules.chat.router.generate_reply", _fake_generate_reply),
+    ):
+        with client.stream("POST", "/v1/chat", json={"message": "hi"}) as response:
+            assert response.status_code == 200
+            next(response.iter_lines())
+            # Exiting the `with` block here closes the connection mid-stream;
+            # the assertion is simply that doing so raises nothing.

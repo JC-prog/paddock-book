@@ -1,5 +1,8 @@
 import { ReadableStream } from 'node:stream/web';
 
+import { TestBed } from '@angular/core/testing';
+
+import { AuthService } from '../../core/auth/auth.service';
 import { ChatApiService } from './chat-api.service';
 
 function encode(chunk: string): Uint8Array {
@@ -44,9 +47,15 @@ function makeHungStream(): ReadableStream<Uint8Array> {
 
 describe('ChatApiService', () => {
   let service: ChatApiService;
+  let authServiceStub: Partial<AuthService>;
 
   beforeEach(() => {
-    service = new ChatApiService();
+    authServiceStub = { getAccessToken: () => 'a-test-access-token' };
+
+    TestBed.configureTestingModule({
+      providers: [ChatApiService, { provide: AuthService, useValue: authServiceStub }]
+    });
+    service = TestBed.inject(ChatApiService);
   });
 
   afterEach(() => {
@@ -130,5 +139,34 @@ describe('ChatApiService', () => {
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(errored).toBe(true);
+  });
+
+  it('attaches an Authorization header sourced from AuthService', async () => {
+    const stream = makeStream(['data: Hello,\n\n']);
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(stream, { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await new Promise<void>((resolve, reject) => {
+      service.streamReply('hi').subscribe({ complete: resolve, error: reject });
+    });
+
+    const [, init] = fetchSpy.mock.calls[0];
+    const headers = init.headers as Record<string, string>;
+    expect(headers['Authorization']).toBe('Bearer a-test-access-token');
+  });
+
+  it('does not attach an Authorization header when logged out', async () => {
+    authServiceStub.getAccessToken = () => null;
+    const stream = makeStream(['data: Hello,\n\n']);
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(stream, { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await new Promise<void>((resolve, reject) => {
+      service.streamReply('hi').subscribe({ complete: resolve, error: reject });
+    });
+
+    const [, init] = fetchSpy.mock.calls[0];
+    const headers = init.headers as Record<string, string>;
+    expect(headers['Authorization']).toBeUndefined();
   });
 });

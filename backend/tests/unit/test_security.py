@@ -25,6 +25,17 @@ def _settings(**overrides) -> Settings:
     return Settings(_env_file=None, **defaults)
 
 
+@pytest.fixture(autouse=True)
+def _default_env(monkeypatch):
+    # get_current_user constructs Settings() internally (no injectable
+    # override — see core/security.py), so it reads real env vars/.env
+    # rather than test fixtures. Pin them to match _settings()'s defaults
+    # so tokens created with _settings() decode consistently, regardless
+    # of whatever a developer's local backend/.env actually contains.
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.setenv("JWT_SECRET", "test-secret")
+
+
 def test_hash_password_produces_a_verifiable_hash():
     hashed = hash_password("correct horse battery staple")
 
@@ -81,34 +92,28 @@ def test_get_current_user_returns_claims_for_valid_bearer_header():
         sub="user-123", email="driver@team.example", department="technical", settings=settings
     )
 
-    claims = get_current_user(authorization=f"Bearer {token}", settings=settings)
+    claims = get_current_user(authorization=f"Bearer {token}")
 
     assert claims == {"sub": "user-123", "email": "driver@team.example", "department": "technical"}
 
 
 def test_get_current_user_raises_401_for_missing_header():
-    settings = _settings()
-
     with pytest.raises(HTTPException) as exc_info:
-        get_current_user(authorization=None, settings=settings)
+        get_current_user(authorization=None)
 
     assert exc_info.value.status_code == 401
 
 
 def test_get_current_user_raises_401_for_malformed_header():
-    settings = _settings()
-
     with pytest.raises(HTTPException) as exc_info:
-        get_current_user(authorization="not-a-bearer-token", settings=settings)
+        get_current_user(authorization="not-a-bearer-token")
 
     assert exc_info.value.status_code == 401
 
 
 def test_get_current_user_raises_401_for_invalid_token():
-    settings = _settings()
-
     with pytest.raises(HTTPException) as exc_info:
-        get_current_user(authorization="Bearer not-a-real-token", settings=settings)
+        get_current_user(authorization="Bearer not-a-real-token")
 
     assert exc_info.value.status_code == 401
 

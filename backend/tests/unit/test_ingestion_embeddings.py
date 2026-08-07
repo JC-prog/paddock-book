@@ -3,12 +3,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.core.embeddings import EMBEDDING_DIMENSIONS, EMBEDDING_MODEL_ID
 from src.modules.ingestion.chunker import Chunk
-from src.modules.ingestion.embeddings import (
-    EMBEDDING_DIMENSIONS,
-    EMBEDDING_MODEL_ID,
-    embed_chunk,
-)
+from src.modules.ingestion.embeddings import embed_chunk
 
 
 def _mock_client(embedding: list[float]) -> MagicMock:
