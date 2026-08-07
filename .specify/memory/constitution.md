@@ -1,15 +1,19 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 → 1.1.0
+Version change: 1.1.0 → 1.2.0
 Modified principles:
-  - V. Separation of Concerns — expanded with concrete on-disk folder
-    conventions for the Angular frontend (core/, shared/, features/<name>/)
-    and the FastAPI backend (modules/<name>/, core/), supporting a
-    modular-monolith-now, decomposable-later architecture goal.
-Added sections: none (expansion of an existing principle, not a new section)
+  - V. Separation of Concerns — "access control (department-aware
+    authorization via Cognito)" replaced with self-hosted authentication
+    (no third-party identity provider); the layer-separation rule itself
+    is unchanged.
+Modified sections:
+  - Technology & Security Constraints — removed Cognito from the AWS
+    stack list; added a password-credential-hashing requirement now that
+    this application owns credential storage instead of delegating it.
+Added sections: none
 Removed sections: none
 Follow-up TODOs:
-  - TODO(RATIFICATION_DATE): original adoption date unknown; user explicitly deferred this (carried over, unrelated to this amendment).
+  - TODO(RATIFICATION_DATE): original adoption date unknown; carried over, unrelated to this amendment.
   - Deferred non-governance intents from this amendment are listed under
     "Next Actions" in the command output, not in this file — this command
     does not move or restructure source files.
@@ -59,8 +63,9 @@ what the code already says.
 
 ### V. Separation of Concerns
 Retrieval (document indexing/search over Sporting, Technical, and Financial
-regulation text), access control (department-aware authorization via Cognito),
-API orchestration (FastAPI), and presentation (Angular) MUST remain in
+regulation text), access control (department-aware authorization via
+self-hosted authentication — no third-party identity provider), API
+orchestration (FastAPI), and presentation (Angular) MUST remain in
 distinct, independently testable layers. A layer MUST NOT reach across its
 boundary to directly manipulate another layer's internals (e.g., presentation
 code MUST NOT embed retrieval or SQL logic; access-control decisions MUST NOT
@@ -90,16 +95,21 @@ and extractable without a future rewrite of their internal organization.
 
 ## Technology & Security Constraints
 
-Stack: FastAPI, Postgres + pgvector, AWS (Lambda/Fargate, Cognito, CDK),
-Angular, Anthropic API/Bedrock. This is a private repository containing
-references to internal financial reporting processes; nothing derived from
-this codebase or its regulation corpus may be made public without explicit
-review. All access to Sporting, Technical, and Financial regulation content
-MUST be mediated by department-aware authorization checks enforced at the API
-layer (Principle V) — never solely in the frontend. Secrets and credentials
-MUST NOT be committed to the repository; infrastructure changes (CDK) that
-alter access permissions or data exposure MUST be called out explicitly in
-the PR description.
+Stack: FastAPI, Postgres + pgvector, AWS (Lambda/Fargate, CDK), Angular,
+Anthropic API/Bedrock. Authentication is self-hosted, not delegated to a
+third-party identity provider (e.g. AWS Cognito) — this application owns
+credential storage and session/token issuance directly, a deliberate choice
+to avoid vendor lock-in on identity. Password credentials MUST be hashed
+with a modern adaptive hashing algorithm (e.g. bcrypt or argon2) and MUST
+NOT be stored in plaintext or in a reversibly-encrypted form. This is a
+private repository containing references to internal financial reporting
+processes; nothing derived from this codebase or its regulation corpus may
+be made public without explicit review. All access to Sporting, Technical,
+and Financial regulation content MUST be mediated by department-aware
+authorization checks enforced at the API layer (Principle V) — never solely
+in the frontend. Secrets and credentials MUST NOT be committed to the
+repository; infrastructure changes (CDK) that alter access permissions or
+data exposure MUST be called out explicitly in the PR description.
 
 ## Development Workflow & Quality Gates
 
@@ -127,4 +137,4 @@ Versioning policy: MAJOR for backward-incompatible governance changes or
 principle removals/redefinitions; MINOR for new principles or materially
 expanded guidance; PATCH for clarifications and non-semantic wording fixes.
 
-**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date not provided | **Last Amended**: 2026-08-04
+**Version**: 1.2.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date not provided | **Last Amended**: 2026-08-06

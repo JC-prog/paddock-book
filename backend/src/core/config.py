@@ -6,3 +6,6 @@ class Settings(BaseSettings):
 
     database_url: str
     aws_region: str = "us-east-1"
+    jwt_secret: str
+    access_token_ttl_minutes: int = 15
+    refresh_token_ttl_days: int = 7
