@@ -11,6 +11,40 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-06
+
+Spec: `specs/007-user-authentication/spec.md`
+
+### Added
+
+- Backend: self-hosted JWT authentication — `POST /v1/auth/register`,
+  `/login`, `/logout`, `/refresh` — with no third-party identity provider.
+  Passwords are hashed with bcrypt and never stored in a reversible form.
+  Access tokens are short-lived (15 min default); refresh tokens are
+  rotated on every use and stored hashed, delivered as an httpOnly,
+  `SameSite=Lax` cookie.
+- Backend: basic protection against rapid repeated failed login attempts
+  against the same account.
+- Backend: open, self-service registration — an email, password, and one
+  of Sporting/Technical/Financial department, with no admin/invite step
+  and no password complexity requirement beyond non-empty.
+- Frontend: login and registration pages, a route guard gating the app's
+  existing routes behind a logged-in session, and an HTTP interceptor
+  attaching the access token to outgoing requests. The access token lives
+  in memory only (never `localStorage`/`sessionStorage`); an
+  `APP_INITIALIZER` performs a silent refresh before the app finishes
+  bootstrapping, so a hard page reload doesn't race the auth guard.
+- Frontend: the navbar shows the logged-in staff member's email and a
+  working logout control.
+
+### Changed
+
+- Constitution (`.specify/memory/constitution.md`, 1.1.0 → 1.2.0):
+  Principle V and the Technology & Security Constraints no longer
+  reference AWS Cognito — authentication is declared self-hosted; added a
+  requirement that password credentials be hashed with a modern adaptive
+  algorithm and never stored in plaintext or reversibly encrypted.
+
 ## [0.5.0] - 2026-08-06
 
 Spec: `specs/006-pdf-ingestion-pipeline/spec.md`
