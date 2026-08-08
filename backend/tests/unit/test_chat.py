@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -120,3 +121,53 @@ def test_chat_does_not_raise_on_early_client_disconnect():
             next(response.iter_lines())
             # Exiting the `with` block here closes the connection mid-stream;
             # the assertion is simply that doing so raises nothing.
+
+
+def test_chat_logs_a_chat_retrieval_succeeded_event_with_account_and_department(caplog):
+    caplog.set_level(logging.INFO)
+    _authenticated()
+
+    with (
+        patch("src.modules.chat.router.get_connection", MagicMock()),
+        patch("src.modules.chat.router.retrieve_context", _fake_retrieve_context),
+        patch("src.modules.chat.router.generate_reply", _fake_generate_reply),
+    ):
+        with client.stream("POST", "/v1/chat", json={"message": "hi"}) as response:
+            list(response.iter_lines())
+
+    record = next(r for r in caplog.records if getattr(r, "event", None) == "chat_retrieval_succeeded")
+    assert record.user_id == "user-123"
+    assert record.departments == ["sporting"]
+
+
+def test_chat_event_log_does_not_contain_the_question_text(caplog):
+    caplog.set_level(logging.DEBUG)
+    _authenticated()
+    unique_question = "zzz-unique-test-question-xyz123"
+
+    with (
+        patch("src.modules.chat.router.get_connection", MagicMock()),
+        patch("src.modules.chat.router.retrieve_context", _fake_retrieve_context),
+        patch("src.modules.chat.router.generate_reply", _fake_generate_reply),
+    ):
+        with client.stream("POST", "/v1/chat", json={"message": unique_question}) as response:
+            list(response.iter_lines())
+
+    for record in caplog.records:
+        assert unique_question not in str(record.__dict__)
+
+
+def test_chat_event_log_not_produced_when_retrieval_fails(caplog):
+    caplog.set_level(logging.INFO)
+    _authenticated()
+
+    def _failing_retrieve_context(message, department, *, conn):
+        raise RuntimeError("boom")
+
+    with (
+        patch("src.modules.chat.router.get_connection", MagicMock()),
+        patch("src.modules.chat.router.retrieve_context", _failing_retrieve_context),
+    ):
+        client.post("/v1/chat", json={"message": "hi"})
+
+    assert not any(getattr(r, "event", None) == "chat_retrieval_succeeded" for r in caplog.records)
