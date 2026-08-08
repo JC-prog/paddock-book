@@ -11,6 +11,24 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-08
+
+Spec: `specs/010-app-logging/spec.md`
+
+### Added
+
+- Backend: structured JSON logging for every request — method, path,
+  status, and duration, each tagged with a unique correlation ID shared
+  by every log line produced while handling that request. An unhandled
+  error is logged with a full stack trace while the client still gets a
+  clean HTTP error response, not a hang.
+- Backend: authentication events (login success/failure, logout,
+  registration) and successful chat retrievals are now logged, each
+  naming the account (and, for chat, the department) involved — never a
+  password, token, or the question/answer text itself.
+- Backend: `logout()` now looks up which account a refresh token belongs
+  to before revoking it, so the logout event can name who logged out.
+
 ## [0.8.0] - 2026-08-08
 
 Spec: `specs/009-fia-pdf-download/spec.md`

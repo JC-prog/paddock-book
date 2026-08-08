@@ -18,7 +18,7 @@ from src.core.security import (
 def _settings(**overrides) -> Settings:
     defaults = {
         "database_url": "postgresql://user:pass@localhost:5432/db",
-        "jwt_secret": "test-secret",
+        "jwt_secret": "test-secret-not-for-production-use-only",
         "access_token_ttl_minutes": 15,
     }
     defaults.update(overrides)
@@ -33,7 +33,7 @@ def _default_env(monkeypatch):
     # so tokens created with _settings() decode consistently, regardless
     # of whatever a developer's local backend/.env actually contains.
     monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
+    monkeypatch.setenv("JWT_SECRET", "test-secret-not-for-production-use-only")
 
 
 def test_hash_password_produces_a_verifiable_hash():

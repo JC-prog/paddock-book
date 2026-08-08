@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -174,3 +175,113 @@ def test_register_rejects_an_empty_password_before_any_lookup_or_write():
     collaborators["repository"].get_user_by_email.assert_not_called()
     collaborators["security"].hash_password.assert_not_called()
     collaborators["repository"].create_user.assert_not_called()
+
+
+def _event_record(caplog, event: str) -> logging.LogRecord:
+    return next(r for r in caplog.records if getattr(r, "event", None) == event)
+
+
+def test_login_logs_a_login_succeeded_event_with_email_and_user_id(caplog):
+    caplog.set_level(logging.INFO)
+    collaborators = _collaborators(user=_user())
+
+    login("driver@team.example", "correct-password", **collaborators)
+
+    record = _event_record(caplog, "login_succeeded")
+    assert record.levelno == logging.INFO
+    assert record.email == "driver@team.example"
+    assert record.user_id == "user-123"
+
+
+def test_login_logs_a_login_failed_event_on_wrong_password(caplog):
+    caplog.set_level(logging.INFO)
+    collaborators = _collaborators(user=_user())
+
+    with pytest.raises(ValueError):
+        login("driver@team.example", "wrong-password", **collaborators)
+
+    record = _event_record(caplog, "login_failed")
+    assert record.levelno == logging.WARNING
+    assert record.email == "driver@team.example"
+    assert record.user_id is None
+
+
+def test_login_logs_a_login_failed_event_for_an_unknown_email(caplog):
+    caplog.set_level(logging.INFO)
+    collaborators = _collaborators(user=None)
+
+    with pytest.raises(ValueError):
+        login("nobody@team.example", "correct-password", **collaborators)
+
+    record = _event_record(caplog, "login_failed")
+    assert record.email == "nobody@team.example"
+    assert record.user_id is None
+
+
+def test_logout_looks_up_the_account_before_revoking_and_logs_logout_succeeded(caplog):
+    caplog.set_level(logging.INFO)
+    collaborators = _collaborators(
+        valid_refresh={"id": "rt-1", "user_id": "user-123", "expires_at": None}
+    )
+
+    logout(
+        "a-raw-refresh-token",
+        conn=collaborators["conn"],
+        repository=collaborators["repository"],
+        security=collaborators["security"],
+    )
+
+    collaborators["repository"].get_valid_refresh_token.assert_called_once_with(
+        collaborators["conn"], "a-hashed-refresh-token"
+    )
+    record = _event_record(caplog, "logout_succeeded")
+    assert record.user_id == "user-123"
+
+
+def test_logout_still_revokes_when_the_token_is_not_found_in_a_lookup(caplog):
+    caplog.set_level(logging.INFO)
+    collaborators = _collaborators(valid_refresh=None)
+
+    logout(
+        "a-raw-refresh-token",
+        conn=collaborators["conn"],
+        repository=collaborators["repository"],
+        security=collaborators["security"],
+    )
+
+    collaborators["repository"].revoke_refresh_token.assert_called_once_with(
+        collaborators["conn"], "a-hashed-refresh-token"
+    )
+    record = _event_record(caplog, "logout_succeeded")
+    assert record.user_id is None
+
+
+def test_register_logs_a_registration_succeeded_event(caplog):
+    caplog.set_level(logging.INFO)
+    created = _user(id="new-user-id", email="newdriver@team.example", department="technical")
+    collaborators = _collaborators(user=None, created_user=created)
+
+    register("newdriver@team.example", "a-password", "technical", **collaborators)
+
+    record = _event_record(caplog, "registration_succeeded")
+    assert record.email == "newdriver@team.example"
+    assert record.user_id == "new-user-id"
+
+
+def test_no_auth_log_record_ever_contains_a_password_value(caplog):
+    caplog.set_level(logging.DEBUG)
+    login_collaborators = _collaborators(user=_user())
+    with pytest.raises(ValueError):
+        # This mock's verify_password only accepts "correct-password" (see
+        # _collaborators), so this login is expected to fail — the point
+        # here is only that the attempted password never appears in a log.
+        login("driver@team.example", "login-secret-pw", **login_collaborators)
+
+    created = _user(id="new-user-id", email="newdriver@team.example")
+    register_collaborators = _collaborators(user=None, created_user=created)
+    register("newdriver@team.example", "register-secret-pw", "sporting", **register_collaborators)
+
+    for record in caplog.records:
+        dump = str(record.__dict__)
+        assert "login-secret-pw" not in dump
+        assert "register-secret-pw" not in dump
