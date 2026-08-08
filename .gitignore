@@ -223,3 +223,6 @@ node_modules/
 npm-debug.log*
 *.tsbuildinfo
 out-tsc/
+
+# Downloaded regulation PDFs + manifests (modules/download/) — runtime output, never committed
+/data/
