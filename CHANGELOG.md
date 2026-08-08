@@ -11,6 +11,36 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-07
+
+Spec: `specs/008-add-chatbot/spec.md`
+
+### Added
+
+- Backend: `POST /v1/chat` now generates a real, retrieval-grounded answer
+  instead of the fixed placeholder reply (feature 003) — the question is
+  embedded, the most relevant regulation chunks are retrieved from the
+  pgvector store (feature 006), scoped to the requesting staff member's
+  department (feature 007), and an answer is generated from them via the
+  configured LLM provider (Ollama for local development; Bedrock for
+  production).
+- Backend: when a staff member's department has no ingested content at
+  all, the endpoint deterministically responds that it has no relevant
+  information rather than attempting to generate a guess; when content is
+  retrieved but doesn't actually answer the question, the model is
+  instructed to say the same, on a best-effort (not guaranteed) basis.
+- Backend: `POST /v1/chat` now requires a logged-in session (feature 007)
+  — an unauthenticated request is rejected rather than producing any
+  answer. A retrieval or embedding failure (e.g. the LLM provider or
+  database is unreachable) returns a clean `502` before any response
+  stream opens, rather than breaking an already-open connection.
+- Backend: `core/embeddings.py` — the Bedrock Titan V2 embedding call,
+  promoted out of the ingestion module (feature 006) since retrieval is
+  now a second real consumer of it.
+- Frontend: the chat request now attaches the logged-in staff member's
+  access token, so questions reach the endpoint as authenticated
+  requests.
+
 ## [0.6.0] - 2026-08-06
 
 Spec: `specs/007-user-authentication/spec.md`
