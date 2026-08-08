@@ -11,3 +11,4 @@ pydantic-settings==2.14.2
 PyJWT==2.13.0
 bcrypt==5.0.0
 ollama==0.6.2
+beautifulsoup4==4.12.3
