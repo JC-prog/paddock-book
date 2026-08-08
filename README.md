@@ -12,8 +12,8 @@ Anthropic API/Bedrock. Authentication is self-hosted (no third-party
 identity provider).
 
 ## Access
-Private repository. Contains references to internal financial reporting
-processes — do not make public without review.
+Public repository. Contains references to internal financial reporting
+processes — review any content before adding it here.
 
 ## Local Development
 
