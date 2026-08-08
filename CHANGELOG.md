@@ -11,6 +11,70 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-07
+
+Spec: `specs/008-add-chatbot/spec.md`
+
+### Added
+
+- Backend: `POST /v1/chat` now generates a real, retrieval-grounded answer
+  instead of the fixed placeholder reply (feature 003) — the question is
+  embedded, the most relevant regulation chunks are retrieved from the
+  pgvector store (feature 006), scoped to the requesting staff member's
+  department (feature 007), and an answer is generated from them via the
+  configured LLM provider (Ollama for local development; Bedrock for
+  production).
+- Backend: when a staff member's department has no ingested content at
+  all, the endpoint deterministically responds that it has no relevant
+  information rather than attempting to generate a guess; when content is
+  retrieved but doesn't actually answer the question, the model is
+  instructed to say the same, on a best-effort (not guaranteed) basis.
+- Backend: `POST /v1/chat` now requires a logged-in session (feature 007)
+  — an unauthenticated request is rejected rather than producing any
+  answer. A retrieval or embedding failure (e.g. the LLM provider or
+  database is unreachable) returns a clean `502` before any response
+  stream opens, rather than breaking an already-open connection.
+- Backend: `core/embeddings.py` — the Bedrock Titan V2 embedding call,
+  promoted out of the ingestion module (feature 006) since retrieval is
+  now a second real consumer of it.
+- Frontend: the chat request now attaches the logged-in staff member's
+  access token, so questions reach the endpoint as authenticated
+  requests.
+
+## [0.6.0] - 2026-08-06
+
+Spec: `specs/007-user-authentication/spec.md`
+
+### Added
+
+- Backend: self-hosted JWT authentication — `POST /v1/auth/register`,
+  `/login`, `/logout`, `/refresh` — with no third-party identity provider.
+  Passwords are hashed with bcrypt and never stored in a reversible form.
+  Access tokens are short-lived (15 min default); refresh tokens are
+  rotated on every use and stored hashed, delivered as an httpOnly,
+  `SameSite=Lax` cookie.
+- Backend: basic protection against rapid repeated failed login attempts
+  against the same account.
+- Backend: open, self-service registration — an email, password, and one
+  of Sporting/Technical/Financial department, with no admin/invite step
+  and no password complexity requirement beyond non-empty.
+- Frontend: login and registration pages, a route guard gating the app's
+  existing routes behind a logged-in session, and an HTTP interceptor
+  attaching the access token to outgoing requests. The access token lives
+  in memory only (never `localStorage`/`sessionStorage`); an
+  `APP_INITIALIZER` performs a silent refresh before the app finishes
+  bootstrapping, so a hard page reload doesn't race the auth guard.
+- Frontend: the navbar shows the logged-in staff member's email and a
+  working logout control.
+
+### Changed
+
+- Constitution (`.specify/memory/constitution.md`, 1.1.0 → 1.2.0):
+  Principle V and the Technology & Security Constraints no longer
+  reference AWS Cognito — authentication is declared self-hosted; added a
+  requirement that password credentials be hashed with a modern adaptive
+  algorithm and never stored in plaintext or reversibly encrypted.
+
 ## [0.5.0] - 2026-08-06
 
 Spec: `specs/006-pdf-ingestion-pipeline/spec.md`
