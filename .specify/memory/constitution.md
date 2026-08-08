@@ -1,15 +1,16 @@
 <!--
 Sync Impact Report
-Version change: 1.1.0 → 1.2.0
-Modified principles:
-  - V. Separation of Concerns — "access control (department-aware
-    authorization via Cognito)" replaced with self-hosted authentication
-    (no third-party identity provider); the layer-separation rule itself
-    is unchanged.
+Version change: 1.2.0 → 1.3.0
+Modified principles: none
 Modified sections:
-  - Technology & Security Constraints — removed Cognito from the AWS
-    stack list; added a password-credential-hashing requirement now that
-    this application owns credential storage instead of delegating it.
+  - Development Workflow & Quality Gates — added a new requirement that
+    every feature's final/Polish phase bump the application version
+    (semantic versioning, kept in sync across VERSION,
+    frontend/package.json, backend/src/__init__.py) and add a
+    corresponding CHANGELOG.md entry describing what shipped, linked to
+    that feature's spec. This is a new governance requirement, not a
+    redefinition of any existing principle — MINOR bump per the
+    versioning policy below.
 Added sections: none
 Removed sections: none
 Follow-up TODOs:
@@ -122,6 +123,14 @@ Reviewers MUST block merges that violate any of these without an explicit,
 documented justification in the PR description. CI MUST run the unit test
 suite and MUST fail the build on any regression in previously passing tests.
 
+Every feature's final/Polish phase MUST bump the application version
+(`VERSION`, kept in sync with `frontend/package.json` and
+`backend/src/__init__.py`) following semantic versioning, and MUST add a
+corresponding `CHANGELOG.md` entry — linked to that feature's spec —
+describing what shipped. A pull request that completes a feature's Polish
+phase without this bump MUST NOT be merged without an explicit, documented
+justification in its description.
+
 ## Governance
 
 This constitution supersedes ad hoc conventions and prior undocumented
@@ -137,4 +146,4 @@ Versioning policy: MAJOR for backward-incompatible governance changes or
 principle removals/redefinitions; MINOR for new principles or materially
 expanded guidance; PATCH for clarifications and non-semantic wording fixes.
 
-**Version**: 1.2.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date not provided | **Last Amended**: 2026-08-06
+**Version**: 1.3.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date not provided | **Last Amended**: 2026-08-08
