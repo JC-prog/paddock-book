@@ -1,8 +1,11 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from src.core.config import Settings
 from src.core import security as security_module
 from src.modules.auth import repository as repository_module
+
+logger = logging.getLogger(__name__)
 
 _GENERIC_LOGIN_ERROR = "Invalid email or password"
 _GENERIC_REFRESH_ERROR = "Invalid or expired refresh token"
@@ -42,8 +45,16 @@ def login(
     user = repository.get_user_by_email(conn, email)
 
     if user is None or not security.verify_password(password, user["password_hash"]):
+        logger.warning(
+            "login failed",
+            extra={"event": "login_failed", "email": email, "user_id": None},
+        )
         raise ValueError(_GENERIC_LOGIN_ERROR)
 
+    logger.info(
+        "login succeeded",
+        extra={"event": "login_succeeded", "email": email, "user_id": str(user["id"])},
+    )
     return _issue_session(user, conn=conn, repository=repository, security=security, settings=settings)
 
 
@@ -79,8 +90,13 @@ def logout(
         return
 
     token_hash = security.hash_token(refresh_token_raw)
+    existing = repository.get_valid_refresh_token(conn, token_hash)
+    user_id = str(existing["user_id"]) if existing else None
+
     repository.revoke_refresh_token(conn, token_hash)
     conn.commit()
+
+    logger.info("logout succeeded", extra={"event": "logout_succeeded", "user_id": user_id})
 
 
 def register(
@@ -103,4 +119,8 @@ def register(
     password_hash = security.hash_password(password)
     user = repository.create_user(conn, email, password_hash, department)
 
+    logger.info(
+        "registration succeeded",
+        extra={"event": "registration_succeeded", "email": email, "user_id": str(user["id"])},
+    )
     return _issue_session(user, conn=conn, repository=repository, security=security, settings=settings)

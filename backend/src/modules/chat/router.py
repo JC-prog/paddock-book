@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sse_starlette.sse import EventSourceResponse
 
@@ -5,6 +7,8 @@ from src.core.db import get_connection
 from src.core.security import get_current_user
 from src.modules.chat.schemas import ChatRequest
 from src.modules.chat.service import generate_reply, retrieve_context
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -22,4 +26,12 @@ async def post_chat(
             detail="Could not retrieve regulation content",
         ) from exc
 
+    logger.info(
+        "chat retrieval succeeded",
+        extra={
+            "event": "chat_retrieval_succeeded",
+            "user_id": user["sub"],
+            "departments": [user["department"]],
+        },
+    )
     return EventSourceResponse(generate_reply(chat_request.message, chunks))
