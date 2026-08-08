@@ -1,23 +1,20 @@
 <!--
 Sync Impact Report
-Version change: 1.2.0 → 1.3.0
+Version change: 1.3.0 → 1.3.1
 Modified principles: none
 Modified sections:
-  - Development Workflow & Quality Gates — added a new requirement that
-    every feature's final/Polish phase bump the application version
-    (semantic versioning, kept in sync across VERSION,
-    frontend/package.json, backend/src/__init__.py) and add a
-    corresponding CHANGELOG.md entry describing what shipped, linked to
-    that feature's spec. This is a new governance requirement, not a
-    redefinition of any existing principle — MINOR bump per the
-    versioning policy below.
+  - Technology & Security Constraints — corrected the repository's stated
+    visibility from private to public (it is actually a public
+    repository) and re-scoped the sensitive-content constraint
+    accordingly: financial/regulation-corpus content now MUST NOT be
+    committed at all without review, rather than relying on the
+    repository's privacy as a backstop. The underlying protective intent
+    is unchanged, so this is a PATCH (factual correction), not a MINOR/
+    MAJOR change.
 Added sections: none
 Removed sections: none
 Follow-up TODOs:
   - TODO(RATIFICATION_DATE): original adoption date unknown; carried over, unrelated to this amendment.
-  - Deferred non-governance intents from this amendment are listed under
-    "Next Actions" in the command output, not in this file — this command
-    does not move or restructure source files.
 -->
 
 # PaddockBook Constitution
@@ -103,9 +100,10 @@ credential storage and session/token issuance directly, a deliberate choice
 to avoid vendor lock-in on identity. Password credentials MUST be hashed
 with a modern adaptive hashing algorithm (e.g. bcrypt or argon2) and MUST
 NOT be stored in plaintext or in a reversibly-encrypted form. This is a
-private repository containing references to internal financial reporting
-processes; nothing derived from this codebase or its regulation corpus may
-be made public without explicit review. All access to Sporting, Technical,
+public repository — internal financial reporting process details and any
+non-public regulation corpus content MUST NOT be committed here without
+explicit review; nothing sensitive may be assumed protected by the
+repository's visibility. All access to Sporting, Technical,
 and Financial regulation content MUST be mediated by department-aware
 authorization checks enforced at the API layer (Principle V) — never solely
 in the frontend. Secrets and credentials MUST NOT be committed to the
@@ -146,4 +144,4 @@ Versioning policy: MAJOR for backward-incompatible governance changes or
 principle removals/redefinitions; MINOR for new principles or materially
 expanded guidance; PATCH for clarifications and non-semantic wording fixes.
 
-**Version**: 1.3.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date not provided | **Last Amended**: 2026-08-08
+**Version**: 1.3.1 | **Ratified**: TODO(RATIFICATION_DATE): original adoption date not provided | **Last Amended**: 2026-08-08
