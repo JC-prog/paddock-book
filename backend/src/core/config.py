@@ -10,3 +10,7 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_days: int = 7
     cookie_secure: bool = False
+    ollama_model: str = "llama3.2"
+    ollama_host: str = "http://localhost:11434"
+    embedding_provider: str = "bedrock"
+    ollama_embedding_model: str = "mxbai-embed-large"

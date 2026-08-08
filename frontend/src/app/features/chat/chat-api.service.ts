@@ -1,11 +1,15 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+
+import { AuthService } from '../../core/auth/auth.service';
 
 const CHAT_API_URL = 'http://localhost:8000/v1/chat';
 const FIRST_EVENT_TIMEOUT_MS = 10_000;
 
 @Injectable({ providedIn: 'root' })
 export class ChatApiService {
+  private readonly authService = inject(AuthService);
+
   streamReply(text: string): Observable<string> {
     return new Observable<string>((subscriber) => {
       const controller = new AbortController();
@@ -46,10 +50,16 @@ export class ChatApiService {
 
       (async () => {
         try {
+          const token = this.authService.getAccessToken();
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+
           const response = await raceAgainstAbort(
             fetch(CHAT_API_URL, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify({ message: text })
             })
           );

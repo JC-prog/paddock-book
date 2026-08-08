@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Header, HTTPException, status
 
 from src.core.config import Settings
 
@@ -44,12 +44,21 @@ def decode_access_token(token: str, settings: Settings) -> dict:
     }
 
 
-def get_current_user(
-    authorization: str | None = Header(default=None),
-    settings: Settings = Depends(Settings),
-) -> dict:
+def get_current_user(authorization: str | None = Header(default=None)) -> dict:
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    # Deliberately not `settings: Settings = Depends(Settings)` — combining a
+    # Depends()-injected BaseSettings model with a route that also has a
+    # Pydantic request body breaks FastAPI's body-model generation (it tries
+    # to introspect Settings' pydantic-settings-specific init kwargs, e.g.
+    # `_env_file`, and rejects the leading underscore). Every other endpoint
+    # in this codebase already calls Settings() directly for the same
+    # reason; this just brings get_current_user in line with that. Also
+    # constructed only after the header check above, so a request with no
+    # Authorization header never needs env vars/.env to be configured at all
+    # (caught in CI: no backend/.env there, unlike local dev).
+    settings = Settings()
 
     token = authorization.removeprefix("Bearer ")
     try:

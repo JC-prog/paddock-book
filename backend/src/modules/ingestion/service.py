@@ -34,9 +34,11 @@ def ingest(
         chunks = chunker.chunk_text(text)
 
         settings = settings_factory()
-        client = embeddings.get_bedrock_client(settings.aws_region)
-        embedded_chunks = [embeddings.embed_chunk(chunk, client) for chunk in chunks]
+        embedded_chunks = [
+            embeddings.embed_chunk(chunk, settings=settings) for chunk in chunks
+        ]
 
         repository.write_document(conn, title, department, embedded_chunks)
+        conn.commit()
     finally:
         conn.close()

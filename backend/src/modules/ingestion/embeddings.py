@@ -1,12 +1,7 @@
-import json
 from dataclasses import dataclass
 
-import boto3
-
+from src.core import embeddings as embeddings_module
 from src.modules.ingestion.chunker import Chunk
-
-EMBEDDING_MODEL_ID = "amazon.titan-embed-text-v2:0"
-EMBEDDING_DIMENSIONS = 1024
 
 
 @dataclass
@@ -16,20 +11,12 @@ class EmbeddedChunk:
     embedding: list[float]
 
 
-def get_bedrock_client(region_name: str):
-    return boto3.client("bedrock-runtime", region_name=region_name)
-
-
-def embed_chunk(chunk: Chunk, client) -> EmbeddedChunk:
-    try:
-        response = client.invoke_model(
-            modelId=EMBEDDING_MODEL_ID,
-            body=json.dumps(
-                {"inputText": chunk.text, "dimensions": EMBEDDING_DIMENSIONS}
-            ),
-        )
-        payload = json.loads(response["body"].read())
-    except Exception as exc:
-        raise RuntimeError(f"Bedrock embedding call failed: {exc}") from exc
-
-    return EmbeddedChunk(text=chunk.text, order=chunk.order, embedding=payload["embedding"])
+def embed_chunk(chunk: Chunk, *, settings, embeddings=embeddings_module) -> EmbeddedChunk:
+    embedding = embeddings.embed(
+        chunk.text,
+        provider=settings.embedding_provider,
+        region_name=settings.aws_region,
+        ollama_host=settings.ollama_host,
+        ollama_model=settings.ollama_embedding_model,
+    )
+    return EmbeddedChunk(text=chunk.text, order=chunk.order, embedding=embedding)
