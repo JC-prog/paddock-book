@@ -11,6 +11,24 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-08
+
+Spec: `specs/009-fia-pdf-download/spec.md`
+
+### Added
+
+- Backend: a locally-invoked CLI
+  (`python -m src.modules.download.cli --category <id> [--output-dir <path>]`)
+  that downloads every regulation PDF listed in a paginated FIA regulation
+  category — including superseded issues, not just the latest — saving
+  each alongside a metadata record (title, source URL, section, issue/
+  revision, publish date, download timestamp) in a `manifest.json`.
+- Backend: re-running the tool skips any document already present in the
+  manifest, so a re-run only fetches what's new. Every request to the
+  source site is rate-limited to its published 10-second crawl-delay.
+  A document that fails to download doesn't abort the run — it's recorded
+  and reported, and the run continues.
+
 ## [0.7.0] - 2026-08-07
 
 Spec: `specs/008-add-chatbot/spec.md`
