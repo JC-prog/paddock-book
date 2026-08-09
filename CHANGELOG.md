@@ -11,6 +11,22 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-09
+
+Spec: `specs/011-log-file-persistence/spec.md`
+
+### Added
+
+- Backend: logs (feature 010's JSON format, unchanged) are now also
+  persisted to a size-rotated file on disk (`logs/app.log` by default,
+  10 MB x 5 backups, 60 MB hard cap), in addition to stdout — toggleable
+  via `Settings.log_to_file` (on by default), so a future admin panel has
+  a concrete switch to drive rather than needing this mechanism rebuilt.
+- Backend: any failure to set up the file destination — missing
+  directory, no permission, or even a failure to read settings at all —
+  degrades to stdout-only logging with a clear warning, never blocking
+  app startup or failing a request.
+
 ## [0.9.0] - 2026-08-08
 
 Spec: `specs/010-app-logging/spec.md`

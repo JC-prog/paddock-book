@@ -226,3 +226,7 @@ out-tsc/
 
 # Downloaded regulation PDFs + manifests (modules/download/) — runtime output, never committed
 /data/
+
+# Rotated backend log files (core/logging.py) — the bare *.log rule above
+# covers app.log itself but not rotated backups like app.log.1
+backend/logs/
