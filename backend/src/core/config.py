@@ -14,3 +14,7 @@ class Settings(BaseSettings):
     ollama_host: str = "http://localhost:11434"
     embedding_provider: str = "bedrock"
     ollama_embedding_model: str = "mxbai-embed-large"
+    log_to_file: bool = True
+    log_file_path: str = "logs/app.log"
+    log_file_max_bytes: int = 10 * 1024 * 1024
+    log_file_backup_count: int = 5
