@@ -11,6 +11,35 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-08-09
+
+Spec: `specs/013-download-ingest-jobs/spec.md`
+
+### Added
+
+- Backend: a new `modules/jobs/` domain lets an admin trigger the
+  existing FIA PDF downloader (feature 009) and PDF ingestion pipeline
+  (feature 006) as background jobs instead of running their CLIs by
+  hand — a download job (by category) and an independently-triggerable
+  ingest job (by `data/regulations/` subfolder + department), both
+  composing those pipelines' existing functions unchanged.
+- Backend: jobs run via a new Celery + Redis task queue (`redis`
+  service in `docker-compose.yml`, a new `backend/src/worker.py` entry
+  point) — the project's first background-worker process. Every job run
+  is recorded durably in a new `job_runs` table (type, target, status,
+  timestamps, per-item results, triggering admin), so status and
+  history survive backend restarts and are visible to every admin, not
+  only the one who triggered it. A partial unique index blocks
+  triggering a duplicate job against the same type/target while one is
+  already queued or running.
+- Backend: an ingest job's target subfolder is confined to
+  `data/regulations/` and rejects anything that would resolve outside
+  it; already-ingested titles are skipped rather than failing the job,
+  matching the download pipeline's existing continue-on-failure
+  behavior.
+- Frontend: a new admin-only Jobs page (`/admin/jobs`) to trigger both
+  job types and see active jobs and history, polling for updates.
+
 ## [0.11.0] - 2026-08-09
 
 Spec: `specs/012-admin-logging-panel/spec.md`
