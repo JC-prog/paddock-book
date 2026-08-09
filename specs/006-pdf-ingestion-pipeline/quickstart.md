@@ -8,8 +8,11 @@ Data shapes: [data-model.md](./data-model.md).
 
 - The local database running (feature 005: `docker compose up -d`)
 - `backend/.venv` set up with this feature's new dependencies installed
-- AWS credentials configured (for the real Bedrock call) — any mechanism
-  `boto3` resolves normally (env vars, shared config, IAM role)
+- An embedding provider configured (`backend/.env`'s `EMBEDDING_PROVIDER`)
+  — either `bedrock` (real AWS credentials, any mechanism `boto3`
+  resolves normally: env vars, shared config, IAM role) or `ollama`
+  (fully local, no AWS account needed — see README.md's "Running Fully
+  Locally" section; requires `ollama pull mxbai-embed-large` first)
 - A sample PDF to ingest
 
 ## 1. Install the new dependencies
