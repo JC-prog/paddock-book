@@ -11,6 +11,7 @@ from src.core.security import (
     get_current_user,
     hash_password,
     hash_token,
+    require_admin,
     verify_password,
 )
 
@@ -58,16 +59,38 @@ def test_create_and_decode_access_token_round_trips_claims():
     settings = _settings()
 
     token = create_access_token(
-        sub="user-123", email="driver@team.example", department="sporting", settings=settings
+        sub="user-123",
+        email="driver@team.example",
+        department="sporting",
+        is_admin=False,
+        settings=settings,
     )
     claims = decode_access_token(token, settings)
 
-    assert claims == {"sub": "user-123", "email": "driver@team.example", "department": "sporting"}
+    assert claims == {
+        "sub": "user-123",
+        "email": "driver@team.example",
+        "department": "sporting",
+        "is_admin": False,
+    }
+
+
+def test_create_access_token_includes_is_admin_true_when_set():
+    settings = _settings()
+
+    token = create_access_token(
+        sub="admin-1", email="admin@team.example", department="sporting", is_admin=True, settings=settings
+    )
+    claims = decode_access_token(token, settings)
+
+    assert claims["is_admin"] is True
 
 
 def test_decode_access_token_raises_for_tampered_token():
     settings = _settings()
-    token = create_access_token(sub="user-123", email="a@b.com", department="sporting", settings=settings)
+    token = create_access_token(
+        sub="user-123", email="a@b.com", department="sporting", is_admin=False, settings=settings
+    )
     # Replace the last few characters of the signature rather than just one —
     # a single-character base64url flip can land on a bit boundary that
     # doesn't actually change the decoded signature bytes, making the
@@ -80,7 +103,9 @@ def test_decode_access_token_raises_for_tampered_token():
 
 def test_decode_access_token_raises_for_expired_token():
     settings = _settings(access_token_ttl_minutes=-1)
-    token = create_access_token(sub="user-123", email="a@b.com", department="sporting", settings=settings)
+    token = create_access_token(
+        sub="user-123", email="a@b.com", department="sporting", is_admin=False, settings=settings
+    )
 
     with pytest.raises(ValueError):
         decode_access_token(token, settings)
@@ -89,12 +114,21 @@ def test_decode_access_token_raises_for_expired_token():
 def test_get_current_user_returns_claims_for_valid_bearer_header():
     settings = _settings()
     token = create_access_token(
-        sub="user-123", email="driver@team.example", department="technical", settings=settings
+        sub="user-123",
+        email="driver@team.example",
+        department="technical",
+        is_admin=False,
+        settings=settings,
     )
 
     claims = get_current_user(authorization=f"Bearer {token}")
 
-    assert claims == {"sub": "user-123", "email": "driver@team.example", "department": "technical"}
+    assert claims == {
+        "sub": "user-123",
+        "email": "driver@team.example",
+        "department": "technical",
+        "is_admin": False,
+    }
 
 
 def test_get_current_user_raises_401_for_missing_header():
@@ -134,3 +168,18 @@ def test_hash_token_is_deterministic_and_does_not_return_the_raw_token():
 
     assert hashed_once == hashed_again
     assert hashed_once != token
+
+
+def test_require_admin_returns_the_claims_unchanged_for_an_admin():
+    claims = {"sub": "admin-1", "email": "admin@team.example", "department": "sporting", "is_admin": True}
+
+    assert require_admin(user=claims) == claims
+
+
+def test_require_admin_raises_403_for_a_non_admin():
+    claims = {"sub": "user-1", "email": "driver@team.example", "department": "sporting", "is_admin": False}
+
+    with pytest.raises(HTTPException) as exc_info:
+        require_admin(user=claims)
+
+    assert exc_info.value.status_code == 403

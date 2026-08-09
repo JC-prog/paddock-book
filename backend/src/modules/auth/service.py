@@ -15,7 +15,11 @@ _DUPLICATE_EMAIL_ERROR = "An account with this email already exists"
 
 def _issue_session(user: dict, *, conn, repository, security, settings) -> dict:
     access_token = security.create_access_token(
-        sub=str(user["id"]), email=user["email"], department=user["department"], settings=settings
+        sub=str(user["id"]),
+        email=user["email"],
+        department=user["department"],
+        is_admin=user["is_admin"],
+        settings=settings,
     )
 
     refresh_token_raw = security.generate_refresh_token()
@@ -28,7 +32,12 @@ def _issue_session(user: dict, *, conn, repository, security, settings) -> dict:
         "access_token": access_token,
         "refresh_token": refresh_token_raw,
         "refresh_token_expires_at": expires_at,
-        "user": {"id": str(user["id"]), "email": user["email"], "department": user["department"]},
+        "user": {
+            "id": str(user["id"]),
+            "email": user["email"],
+            "department": user["department"],
+            "is_admin": user["is_admin"],
+        },
     }
 
 

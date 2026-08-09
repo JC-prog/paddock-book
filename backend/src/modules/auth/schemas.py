@@ -20,6 +20,7 @@ class UserPublic(BaseModel):
     id: str
     email: str
     department: Department
+    is_admin: bool
 
 
 class AuthResponse(BaseModel):

@@ -9,19 +9,25 @@ def create_user(conn: psycopg.Connection, email: str, password_hash: str, depart
             """
             INSERT INTO users (email, password_hash, department)
             VALUES (%s, %s, %s)
-            RETURNING id, email, department, created_at
+            RETURNING id, email, department, is_admin, created_at
             """,
             (email, password_hash, department),
         )
         row = cur.fetchone()
 
-    return {"id": row[0], "email": row[1], "department": row[2], "created_at": row[3]}
+    return {
+        "id": row[0],
+        "email": row[1],
+        "department": row[2],
+        "is_admin": row[3],
+        "created_at": row[4],
+    }
 
 
 def get_user_by_email(conn: psycopg.Connection, email: str) -> dict | None:
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, email, password_hash, department FROM users WHERE email = %s",
+            "SELECT id, email, password_hash, department, is_admin FROM users WHERE email = %s",
             (email,),
         )
         row = cur.fetchone()
@@ -29,13 +35,19 @@ def get_user_by_email(conn: psycopg.Connection, email: str) -> dict | None:
     if row is None:
         return None
 
-    return {"id": row[0], "email": row[1], "password_hash": row[2], "department": row[3]}
+    return {
+        "id": row[0],
+        "email": row[1],
+        "password_hash": row[2],
+        "department": row[3],
+        "is_admin": row[4],
+    }
 
 
 def get_user_by_id(conn: psycopg.Connection, user_id: str) -> dict | None:
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, email, department FROM users WHERE id = %s",
+            "SELECT id, email, department, is_admin FROM users WHERE id = %s",
             (user_id,),
         )
         row = cur.fetchone()
@@ -43,7 +55,7 @@ def get_user_by_id(conn: psycopg.Connection, user_id: str) -> dict | None:
     if row is None:
         return None
 
-    return {"id": row[0], "email": row[1], "department": row[2]}
+    return {"id": row[0], "email": row[1], "department": row[2], "is_admin": row[3]}
 
 
 def create_refresh_token(

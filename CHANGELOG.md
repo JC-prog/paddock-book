@@ -11,6 +11,35 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-09
+
+Spec: `specs/012-admin-logging-panel/spec.md`
+
+### Added
+
+- Backend: a new `is_admin` flag on accounts (default `false`), a
+  `require_admin` authorization dependency, and a small CLI
+  (`python -m src.modules.admin.cli --promote-admin <email>`) — the
+  only way to grant admin access, since there's no in-app or
+  self-service path.
+- Backend: `GET`/`PUT /v1/admin/settings/log-destination`, admin-only,
+  backed by a new single-row `app_settings` table — lets an operator
+  toggle between feature 011's local file logging and stdout-only
+  (what production CloudWatch capture relies on), durably, without
+  editing `.env`. Both the setting change and each admin promotion are
+  recorded as audit log events (`log_destination_changed`,
+  `admin_granted`).
+- Backend: `configure_logging()` now optionally reads this DB-backed
+  setting at startup (via a small, intentionally separate query in
+  `main.py`, not a `modules/admin/` import — preserving the
+  `core/`→`modules/` layering rule) and falls back silently to the
+  `.env`-based default if no row exists yet or the database isn't
+  reachable.
+- Frontend: an admin-only panel (route-guarded by a new `adminGuard`,
+  mirroring the existing `authGuard`) to view and change the log
+  destination setting. The change takes effect on the backend's next
+  restart, not live.
+
 ## [0.10.0] - 2026-08-09
 
 Spec: `specs/011-log-file-persistence/spec.md`

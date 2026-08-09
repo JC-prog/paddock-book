@@ -50,7 +50,9 @@ def _try_build_file_handler(path: str, max_bytes: int, backup_count: int) -> Rot
     return handler
 
 
-def configure_logging(level: int = logging.INFO, *, settings_factory=Settings) -> None:
+def configure_logging(
+    level: int = logging.INFO, *, settings_factory=Settings, db_log_to_file_factory=None
+) -> None:
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(JsonFormatter())
 
@@ -71,7 +73,19 @@ def configure_logging(level: int = logging.INFO, *, settings_factory=Settings) -
         )
         return
 
-    if settings.log_to_file:
+    log_to_file = settings.log_to_file
+    if db_log_to_file_factory is not None:
+        try:
+            db_value = db_log_to_file_factory()
+        except Exception:
+            # No row yet / no DB reachable is an expected, silent fallback
+            # to the .env-based default — not a failure the operator needs
+            # to see, unlike the settings/file-handler warnings above.
+            db_value = None
+        if db_value is not None:
+            log_to_file = db_value
+
+    if log_to_file:
         file_handler = _try_build_file_handler(
             settings.log_file_path, settings.log_file_max_bytes, settings.log_file_backup_count
         )

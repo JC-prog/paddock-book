@@ -8,6 +8,7 @@ export interface AuthUser {
   id: string;
   email: string;
   department: string;
+  is_admin: boolean;
 }
 
 interface AuthResponseBody {
