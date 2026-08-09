@@ -18,3 +18,4 @@ class Settings(BaseSettings):
     log_file_path: str = "logs/app.log"
     log_file_max_bytes: int = 10 * 1024 * 1024
     log_file_backup_count: int = 5
+    redis_url: str = "redis://localhost:6380/0"

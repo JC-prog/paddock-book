@@ -3,11 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.core.db import get_connection
 from src.core.logging import configure_logging
-from src.core.middleware import RequestLoggingMiddleware
-from src.modules.admin.router import router as admin_router
-from src.modules.auth.router import router as auth_router
-from src.modules.chat.router import router as chat_router
-from src.modules.health.router import router as health_router
 
 
 def _read_log_destination_from_db() -> bool | None:
@@ -27,6 +22,20 @@ def _read_log_destination_from_db() -> bool | None:
 
 configure_logging(db_log_to_file_factory=_read_log_destination_from_db)
 
+# Deliberately imported only after configure_logging() has run: some of
+# these modules do real work at import time (e.g. core/celery_app.py
+# constructs the Celery app, with its own graceful-degradation warning
+# on a bad Settings() read) that must go through the JSON logging
+# pipeline like everything else, not fall back to Python's unformatted
+# last-resort handler because it ran before the JSON formatter was
+# attached.
+from src.core.middleware import RequestLoggingMiddleware  # noqa: E402
+from src.modules.admin.router import router as admin_router  # noqa: E402
+from src.modules.auth.router import router as auth_router  # noqa: E402
+from src.modules.chat.router import router as chat_router  # noqa: E402
+from src.modules.health.router import router as health_router  # noqa: E402
+from src.modules.jobs.router import router as jobs_router  # noqa: E402
+
 app = FastAPI(title="PaddockBook API")
 
 # Middleware
@@ -44,3 +53,4 @@ app.include_router(health_router)
 app.include_router(chat_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(jobs_router)

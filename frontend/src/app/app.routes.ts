@@ -17,6 +17,12 @@ export const routes: Routes = [
       import('./features/admin/admin.component').then((m) => m.AdminComponent)
   },
   {
+    path: 'admin/jobs',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./features/admin/jobs/jobs.component').then((m) => m.JobsComponent)
+  },
+  {
     path: 'health',
     loadComponent: () =>
       import('./features/health/health-status.component').then((m) => m.HealthStatusComponent)
