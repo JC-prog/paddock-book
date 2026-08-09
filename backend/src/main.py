@@ -29,6 +29,7 @@ configure_logging(db_log_to_file_factory=_read_log_destination_from_db)
 
 app = FastAPI(title="PaddockBook API")
 
+# Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:4200"],
@@ -38,6 +39,7 @@ app.add_middleware(
 )
 app.add_middleware(RequestLoggingMiddleware)
 
+# Routers
 app.include_router(health_router)
 app.include_router(chat_router)
 app.include_router(auth_router)
