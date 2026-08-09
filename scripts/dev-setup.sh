@@ -28,12 +28,14 @@ cd "$REPO_ROOT/frontend"
 npm install
 
 echo "==> Local environment file"
-cd "$REPO_ROOT"
-if [ ! -f "$REPO_ROOT/.env" ]; then
-  cp "$REPO_ROOT/.env.example" "$REPO_ROOT/.env"
-  echo "Created .env from .env.example"
+# backend/.env, not repo-root .env — src/core/config.py loads ".env"
+# relative to the backend process's working directory (backend/, per
+# README's "cd backend && uvicorn ..."), not the repo root.
+if [ ! -f "$REPO_ROOT/backend/.env" ]; then
+  cp "$REPO_ROOT/backend/.env.example" "$REPO_ROOT/backend/.env"
+  echo "Created backend/.env from backend/.env.example"
 else
-  echo ".env already exists — leaving it untouched"
+  echo "backend/.env already exists — leaving it untouched"
 fi
 
 echo "==> Starting local database"
