@@ -231,6 +231,65 @@ def test_configure_logging_never_keeps_more_files_than_backup_count_plus_one(tmp
     assert len(all_log_files) <= backup_count + 1
 
 
+def test_configure_logging_uses_the_db_factory_value_to_override_settings(tmp_path):
+    log_path = tmp_path / "app.log"
+    settings = _fake_settings(log_to_file=False, log_file_path=str(log_path))
+
+    configure_logging(settings_factory=lambda: settings, db_log_to_file_factory=lambda: True)
+
+    root = logging.getLogger()
+    assert any(isinstance(h, RotatingFileHandler) for h in root.handlers)
+
+
+def test_configure_logging_db_factory_false_overrides_settings_true(tmp_path):
+    log_path = tmp_path / "app.log"
+    settings = _fake_settings(log_to_file=True, log_file_path=str(log_path))
+
+    configure_logging(settings_factory=lambda: settings, db_log_to_file_factory=lambda: False)
+
+    root = logging.getLogger()
+    assert not any(isinstance(h, RotatingFileHandler) for h in root.handlers)
+
+
+def test_configure_logging_falls_back_silently_to_settings_when_db_factory_returns_none(tmp_path, capsys):
+    log_path = tmp_path / "app.log"
+    settings = _fake_settings(log_to_file=True, log_file_path=str(log_path))
+
+    configure_logging(settings_factory=lambda: settings, db_log_to_file_factory=lambda: None)
+
+    root = logging.getLogger()
+    assert any(isinstance(h, RotatingFileHandler) for h in root.handlers)
+
+    lines = [json.loads(line) for line in capsys.readouterr().out.strip().splitlines() if line]
+    assert not any(line.get("event") == "log_file_setup_failed" for line in lines)
+
+
+def test_configure_logging_falls_back_silently_to_settings_when_db_factory_raises(tmp_path, capsys):
+    log_path = tmp_path / "app.log"
+    settings = _fake_settings(log_to_file=True, log_file_path=str(log_path))
+
+    def _broken_db_factory():
+        raise RuntimeError("no postgres reachable")
+
+    configure_logging(settings_factory=lambda: settings, db_log_to_file_factory=_broken_db_factory)
+
+    root = logging.getLogger()
+    assert any(isinstance(h, RotatingFileHandler) for h in root.handlers)
+
+    lines = [json.loads(line) for line in capsys.readouterr().out.strip().splitlines() if line]
+    assert not any(line.get("event") == "log_file_setup_failed" for line in lines)
+
+
+def test_configure_logging_behaves_unchanged_when_db_factory_argument_is_omitted(tmp_path):
+    log_path = tmp_path / "app.log"
+    settings = _fake_settings(log_to_file=True, log_file_path=str(log_path))
+
+    configure_logging(settings_factory=lambda: settings)
+
+    root = logging.getLogger()
+    assert any(isinstance(h, RotatingFileHandler) for h in root.handlers)
+
+
 def test_configure_logging_caps_total_disk_usage_across_many_rotations(tmp_path):
     log_path = tmp_path / "app.log"
     max_bytes = 500

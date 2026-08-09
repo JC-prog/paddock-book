@@ -45,6 +45,7 @@ def _user(**overrides):
         "email": "driver@team.example",
         "password_hash": "hashed",
         "department": "sporting",
+        "is_admin": False,
     }
     defaults.update(overrides)
     return defaults
@@ -59,6 +60,16 @@ def test_login_returns_tokens_for_valid_credentials():
     assert result["refresh_token"] == "a-raw-refresh-token"
     assert result["user"]["email"] == "driver@team.example"
     assert result["user"]["department"] == "sporting"
+    assert result["user"]["is_admin"] is False
+
+
+def test_login_passes_is_admin_through_to_the_issued_access_token():
+    collaborators = _collaborators(user=_user(is_admin=True))
+
+    login("driver@team.example", "correct-password", **collaborators)
+
+    _, kwargs = collaborators["security"].create_access_token.call_args
+    assert kwargs["is_admin"] is True
 
 
 def test_login_creates_a_hashed_refresh_token_row():
@@ -102,6 +113,8 @@ def test_refresh_access_token_returns_new_access_token_and_rotates():
     assert result["refresh_token"] == "a-raw-refresh-token"
     collaborators["repository"].revoke_refresh_token.assert_called_once()
     collaborators["repository"].create_refresh_token.assert_called_once()
+    _, kwargs = collaborators["security"].create_access_token.call_args
+    assert kwargs["is_admin"] is False
 
 
 def test_refresh_access_token_raises_for_invalid_or_expired_token():
@@ -154,6 +167,9 @@ def test_register_creates_a_hashed_password_user_and_returns_a_session():
     assert result["access_token"] == "an-access-token"
     assert result["user"]["email"] == "newdriver@team.example"
     assert result["user"]["department"] == "technical"
+    assert result["user"]["is_admin"] is False
+    _, kwargs = collaborators["security"].create_access_token.call_args
+    assert kwargs["is_admin"] is False
 
 
 def test_register_rejects_a_duplicate_email_before_hashing_or_writing():

@@ -1,4 +1,5 @@
 import { routes } from './app.routes';
+import { adminGuard } from './core/auth/admin.guard';
 import { authGuard } from './core/auth/auth.guard';
 
 describe('app.routes', () => {
@@ -35,10 +36,28 @@ describe('app.routes', () => {
     expect(loaded).toBe(RegisterComponent);
   });
 
+  it('resolves the "admin" path to AdminComponent', async () => {
+    const adminRoute = routes.find((r) => r.path === 'admin');
+    expect(adminRoute).toBeTruthy();
+    expect(adminRoute!.loadComponent).toBeTruthy();
+
+    const loaded = await adminRoute!.loadComponent!();
+    const { AdminComponent } = await import('./features/admin/admin.component');
+
+    expect(loaded).toBe(AdminComponent);
+  });
+
   it('guards the root ("") path with authGuard', () => {
     const rootRoute = routes.find((r) => r.path === '');
     expect(rootRoute).toBeTruthy();
     expect(rootRoute!.canActivate).toContain(authGuard);
+  });
+
+  it('guards the "admin" path with authGuard and adminGuard', () => {
+    const adminRoute = routes.find((r) => r.path === 'admin');
+    expect(adminRoute).toBeTruthy();
+    expect(adminRoute!.canActivate).toContain(authGuard);
+    expect(adminRoute!.canActivate).toContain(adminGuard);
   });
 
   it('does not guard the "login", "register", or "health" paths', () => {
