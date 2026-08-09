@@ -224,8 +224,12 @@ npm-debug.log*
 *.tsbuildinfo
 out-tsc/
 
-# Downloaded regulation PDFs + manifests (modules/download/) — runtime output, never committed
-/data/
+# Downloaded regulation PDFs + manifests (modules/download/), and eval
+# sets/reports (modules/eval/) — runtime output, never committed. Every
+# CLI in this project runs with backend/ as its working directory (per
+# README's "cd backend && ..."), so this must be anchored there, not at
+# the repo root — /data/ never actually matched backend/data/.
+/backend/data/
 
 # Rotated backend log files (core/logging.py) — the bare *.log rule above
 # covers app.log itself but not rotated backups like app.log.1
