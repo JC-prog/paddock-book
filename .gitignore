@@ -230,3 +230,7 @@ out-tsc/
 # Rotated backend log files (core/logging.py) — the bare *.log rule above
 # covers app.log itself but not rotated backups like app.log.1
 backend/logs/
+
+# Local Claude Code permission settings — machine-specific, not shared
+# team config (.claude/skills/ IS committed and shared; this isn't).
+.claude/settings.json
