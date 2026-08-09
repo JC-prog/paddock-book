@@ -150,3 +150,21 @@ def test_settings_reads_ollama_host_from_env(monkeypatch):
     settings = Settings()
 
     assert settings.ollama_host == "http://ollama.internal:11434"
+
+
+def test_settings_defaults_redis_url_when_not_set(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.delenv("REDIS_URL", raising=False)
+
+    settings = Settings()
+
+    assert settings.redis_url == "redis://localhost:6380/0"
+
+
+def test_settings_reads_redis_url_from_env(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.setenv("REDIS_URL", "redis://redis.internal:6379/0")
+
+    settings = Settings()
+
+    assert settings.redis_url == "redis://redis.internal:6379/0"

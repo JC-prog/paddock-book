@@ -47,6 +47,24 @@ describe('app.routes', () => {
     expect(loaded).toBe(AdminComponent);
   });
 
+  it('resolves the "admin/jobs" path to JobsComponent', async () => {
+    const jobsRoute = routes.find((r) => r.path === 'admin/jobs');
+    expect(jobsRoute).toBeTruthy();
+    expect(jobsRoute!.loadComponent).toBeTruthy();
+
+    const loaded = await jobsRoute!.loadComponent!();
+    const { JobsComponent } = await import('./features/admin/jobs/jobs.component');
+
+    expect(loaded).toBe(JobsComponent);
+  });
+
+  it('guards the "admin/jobs" path with authGuard and adminGuard', () => {
+    const jobsRoute = routes.find((r) => r.path === 'admin/jobs');
+    expect(jobsRoute).toBeTruthy();
+    expect(jobsRoute!.canActivate).toContain(authGuard);
+    expect(jobsRoute!.canActivate).toContain(adminGuard);
+  });
+
   it('guards the root ("") path with authGuard', () => {
     const rootRoute = routes.find((r) => r.path === '');
     expect(rootRoute).toBeTruthy();
