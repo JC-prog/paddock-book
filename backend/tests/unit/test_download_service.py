@@ -4,7 +4,12 @@ from unittest.mock import MagicMock, call
 from src.modules.download import listing as real_listing
 from src.modules.download import repository as real_repository
 from src.modules.download.listing import ListedDocument
-from src.modules.download.service import CATEGORY_URL_TEMPLATE, RateLimiter, download_category
+from src.modules.download.service import (
+    CATEGORY_URL_TEMPLATE,
+    RateLimiter,
+    count_documents_in_category,
+    download_category,
+)
 
 
 def _doc(source_url, title="Doc", **overrides):
@@ -286,3 +291,261 @@ def test_download_category_does_not_rate_limit_or_fetch_for_skipped_documents():
     repository.record_entry.assert_not_called()
     # Only the listing-page fetch is rate-limited; the skipped document incurs no wait.
     assert rate_limiter.wait.call_count == 1
+
+
+def test_count_documents_in_category_sums_documents_across_all_pages():
+    page0_url = CATEGORY_URL_TEMPLATE.format(category_id="110")
+    page1_url = f"{page0_url}?page=1"
+    html_by_url = {page0_url: "<html0>", page1_url: "<html1>"}
+    fetch_page = MagicMock(side_effect=lambda url: html_by_url[url])
+
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.side_effect = lambda html, base_url: {
+        "<html0>": [_doc("a"), _doc("b")],
+        "<html1>": [_doc("c")],
+    }[html]
+    listing.has_next_page.side_effect = lambda html: {"<html0>": True, "<html1>": False}[html]
+
+    total = count_documents_in_category(
+        "110", fetch_page=fetch_page, listing=listing, rate_limiter=MagicMock()
+    )
+
+    assert total == 3
+    assert fetch_page.call_args_list == [call(page0_url), call(page1_url)]
+
+
+def test_count_documents_in_category_never_fetches_pdfs():
+    page0_url = CATEGORY_URL_TEMPLATE.format(category_id="110")
+    fetch_page = MagicMock(return_value="<html0>")
+    fetch_pdf = MagicMock()
+
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.return_value = [_doc("a"), _doc("b")]
+    listing.has_next_page.return_value = False
+
+    count_documents_in_category("110", fetch_page=fetch_page, listing=listing, rate_limiter=MagicMock())
+
+    fetch_pdf.assert_not_called()
+
+
+def test_count_documents_in_category_rate_limits_each_page_fetch():
+    fetch_page = MagicMock(return_value="<html0>")
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.side_effect = [[_doc("a")], [_doc("b")]]
+    listing.has_next_page.side_effect = [True, False]
+    rate_limiter = MagicMock()
+
+    count_documents_in_category("110", fetch_page=fetch_page, listing=listing, rate_limiter=rate_limiter)
+
+    assert rate_limiter.wait.call_count == 2
+
+
+def test_count_documents_in_category_calls_on_page_counted_after_each_page():
+    fetch_page = MagicMock(return_value="<html0>")
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.side_effect = [[_doc("a")], [_doc("b")]]
+    listing.has_next_page.side_effect = [True, False]
+    on_page_counted = MagicMock()
+
+    count_documents_in_category(
+        "110",
+        fetch_page=fetch_page,
+        listing=listing,
+        rate_limiter=MagicMock(),
+        on_page_counted=on_page_counted,
+    )
+
+    assert on_page_counted.call_args_list == [call(0), call(1)]
+
+
+def test_count_documents_in_category_works_without_on_page_counted():
+    fetch_page = MagicMock(return_value="<html0>")
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.return_value = [_doc("a")]
+    listing.has_next_page.return_value = False
+
+    total = count_documents_in_category(
+        "110", fetch_page=fetch_page, listing=listing, rate_limiter=MagicMock()
+    )
+
+    assert total == 1
+
+
+def test_download_category_calls_on_progress_after_each_document():
+    doc_downloaded = _doc("https://www.fia.com/a.pdf")
+    doc_skipped = _doc("https://www.fia.com/b.pdf")
+
+    fetch_page = MagicMock(return_value="<html0>")
+    fetch_pdf = MagicMock(return_value=b"pdf-bytes")
+
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.return_value = [doc_downloaded, doc_skipped]
+    listing.has_next_page.return_value = False
+
+    repository = MagicMock(spec=real_repository)
+    repository.load_manifest.return_value = {}
+    repository.is_downloaded.side_effect = lambda manifest, url: url == doc_skipped.source_url
+    repository.save_pdf.return_value = "a.pdf"
+
+    on_progress = MagicMock()
+
+    download_category(
+        "110",
+        "/tmp/out",
+        fetch_page=fetch_page,
+        fetch_pdf=fetch_pdf,
+        listing=listing,
+        repository=repository,
+        rate_limiter=MagicMock(),
+        on_progress=on_progress,
+    )
+
+    assert on_progress.call_args_list == [call(1), call(2)]
+
+
+def test_download_category_calls_on_progress_for_a_failed_document_too():
+    doc = _doc("https://www.fia.com/a.pdf")
+    fetch_page = MagicMock(return_value="<html0>")
+    fetch_pdf = MagicMock(side_effect=RuntimeError("boom"))
+
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.return_value = [doc]
+    listing.has_next_page.return_value = False
+
+    repository = MagicMock(spec=real_repository)
+    repository.load_manifest.return_value = {}
+    repository.is_downloaded.return_value = False
+
+    on_progress = MagicMock()
+
+    download_category(
+        "110",
+        "/tmp/out",
+        fetch_page=fetch_page,
+        fetch_pdf=fetch_pdf,
+        listing=listing,
+        repository=repository,
+        rate_limiter=MagicMock(),
+        on_progress=on_progress,
+    )
+
+    assert on_progress.call_args_list == [call(1)]
+
+
+def test_download_category_works_without_on_progress():
+    doc = _doc("https://www.fia.com/a.pdf")
+    fetch_page = MagicMock(return_value="<html0>")
+    fetch_pdf = MagicMock(return_value=b"pdf-bytes")
+
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.return_value = [doc]
+    listing.has_next_page.return_value = False
+
+    repository = MagicMock(spec=real_repository)
+    repository.load_manifest.return_value = {}
+    repository.is_downloaded.return_value = False
+    repository.save_pdf.return_value = "a.pdf"
+
+    result = download_category(
+        "110",
+        "/tmp/out",
+        fetch_page=fetch_page,
+        fetch_pdf=fetch_pdf,
+        listing=listing,
+        repository=repository,
+        rate_limiter=MagicMock(),
+    )
+
+    assert len(result.downloaded) == 1
+
+
+def test_download_category_calls_on_failure_immediately_for_a_failed_document():
+    doc = _doc("https://www.fia.com/a.pdf", title="A")
+    fetch_page = MagicMock(return_value="<html0>")
+    fetch_pdf = MagicMock(side_effect=RuntimeError("connection reset"))
+
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.return_value = [doc]
+    listing.has_next_page.return_value = False
+
+    repository = MagicMock(spec=real_repository)
+    repository.load_manifest.return_value = {}
+    repository.is_downloaded.return_value = False
+
+    events = []
+    on_failure = lambda failure: events.append(("failure", failure))  # noqa: E731
+    on_progress = lambda count: events.append(("progress", count))  # noqa: E731
+
+    download_category(
+        "110",
+        "/tmp/out",
+        fetch_page=fetch_page,
+        fetch_pdf=fetch_pdf,
+        listing=listing,
+        repository=repository,
+        rate_limiter=MagicMock(),
+        on_progress=on_progress,
+        on_failure=on_failure,
+    )
+
+    assert [kind for kind, _ in events] == ["failure", "progress"]
+    failure = events[0][1]
+    assert failure.source_url == doc.source_url
+    assert failure.title == "A"
+    assert "connection reset" in failure.reason
+
+
+def test_download_category_never_calls_on_failure_for_a_successful_document():
+    doc = _doc("https://www.fia.com/a.pdf")
+    fetch_page = MagicMock(return_value="<html0>")
+    fetch_pdf = MagicMock(return_value=b"pdf-bytes")
+
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.return_value = [doc]
+    listing.has_next_page.return_value = False
+
+    repository = MagicMock(spec=real_repository)
+    repository.load_manifest.return_value = {}
+    repository.is_downloaded.return_value = False
+    repository.save_pdf.return_value = "a.pdf"
+
+    on_failure = MagicMock()
+
+    download_category(
+        "110",
+        "/tmp/out",
+        fetch_page=fetch_page,
+        fetch_pdf=fetch_pdf,
+        listing=listing,
+        repository=repository,
+        rate_limiter=MagicMock(),
+        on_failure=on_failure,
+    )
+
+    on_failure.assert_not_called()
+
+
+def test_download_category_works_without_on_failure():
+    doc = _doc("https://www.fia.com/a.pdf")
+    fetch_page = MagicMock(return_value="<html0>")
+    fetch_pdf = MagicMock(side_effect=RuntimeError("boom"))
+
+    listing = MagicMock(spec=real_listing)
+    listing.parse_listing_page.return_value = [doc]
+    listing.has_next_page.return_value = False
+
+    repository = MagicMock(spec=real_repository)
+    repository.load_manifest.return_value = {}
+    repository.is_downloaded.return_value = False
+
+    result = download_category(
+        "110",
+        "/tmp/out",
+        fetch_page=fetch_page,
+        fetch_pdf=fetch_pdf,
+        listing=listing,
+        repository=repository,
+        rate_limiter=MagicMock(),
+    )
+
+    assert len(result.failed) == 1
