@@ -11,6 +11,25 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-11
+
+Spec: `specs/015-download-progress-bar/spec.md`
+
+### Added
+
+- Backend: the FIA regulation PDF download CLI (`python -m
+  src.modules.download.cli`) now shows real-time progress instead of
+  printing nothing until the whole run finishes. A separate, upfront
+  counting pass walks every listing page once to establish a true
+  bounded total (X of Y documents) before downloading starts — kept
+  deliberately separate from the existing download pass so a listing
+  page failure during download still leaves everything downloaded so
+  far intact (feature 009's resilience guarantee, unchanged). Renders
+  as a live `tqdm` bar in an interactive terminal, or throttled
+  plain-text status lines (one per 10% of progress, failures shown
+  immediately) when output is redirected to a file — never raw
+  escape-code spam either way.
+
 ## [0.13.0] - 2026-08-09
 
 Spec: `specs/014-rag-eval-harness/spec.md`
