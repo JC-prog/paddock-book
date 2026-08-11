@@ -11,6 +11,32 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-08-09
+
+Spec: `specs/014-rag-eval-harness/spec.md`
+
+### Added
+
+- Backend: a new `modules/eval/` CLI (`python -m src.modules.eval.cli
+  generate|run`) to measure the RAG pipeline's own quality — synthesizes
+  a fixed, reusable set of test questions from currently-ingested
+  content via an LLM, then replays that fixed set through the real,
+  unmodified chat retrieval and generation pipeline, scoring retrieval
+  (Hit Rate@k, MRR) and answer correctness (LLM-as-judge, excluding
+  failed judgments from the accuracy metric) into a saved markdown
+  report. Reports and eval sets are timestamped files, never
+  overwritten, so a naive-RAG baseline report can be compared against a
+  future retrieval-improvement (e.g. reranking) report over the
+  identical question set.
+
+### Fixed
+
+- `.gitignore`'s `/data/` entry never actually matched
+  `backend/data/regulations/` (it was anchored to the repo root, but
+  every CLI in this project runs with `backend/` as its working
+  directory) — corrected to `/backend/data/`, also covering this
+  feature's new `backend/data/eval/`.
+
 ## [0.12.0] - 2026-08-09
 
 Spec: `specs/013-download-ingest-jobs/spec.md`
