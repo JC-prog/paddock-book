@@ -59,6 +59,45 @@ def _default_fetch_pdf(url: str) -> bytes:
     return response.content
 
 
+def count_documents_in_category(
+    category_id: str,
+    *,
+    fetch_page=_default_fetch_page,
+    listing=listing_module,
+    rate_limiter: RateLimiter | None = None,
+    on_page_counted=None,
+) -> int:
+    """Walks every listing page for a category purely to count documents —
+    never fetches a PDF, never touches the manifest. Deliberately kept
+    separate from download_category()'s own page walk (not merged into a
+    single collect-then-download pass) so a listing-page failure during
+    the download pass still leaves everything downloaded before it intact
+    (research.md)."""
+    if rate_limiter is None:
+        rate_limiter = RateLimiter(CRAWL_DELAY_SECONDS)
+
+    total = 0
+    page = 0
+    while True:
+        page_url = CATEGORY_URL_TEMPLATE.format(category_id=category_id)
+        if page:
+            page_url = f"{page_url}?page={page}"
+
+        rate_limiter.wait()
+        html = fetch_page(page_url)
+        documents = listing.parse_listing_page(html, BASE_URL)
+        total += len(documents)
+
+        if on_page_counted is not None:
+            on_page_counted(page)
+
+        if not listing.has_next_page(html):
+            break
+        page += 1
+
+    return total
+
+
 def download_category(
     category_id: str,
     output_dir: Path,
@@ -69,6 +108,8 @@ def download_category(
     repository=repository_module,
     rate_limiter: RateLimiter | None = None,
     now=lambda: datetime.now(timezone.utc),
+    on_progress=None,
+    on_failure=None,
 ) -> DownloadRunResult:
     """Walks every listing page for a category and downloads every document
     found (User Story 1). Rate-limits every request to the source site,
@@ -95,6 +136,8 @@ def download_category(
         for document in documents:
             if repository.is_downloaded(manifest, document.source_url):
                 skipped.append(document.source_url)
+                if on_progress is not None:
+                    on_progress(len(downloaded) + len(skipped) + len(failed))
                 continue
 
             rate_limiter.wait()
@@ -115,9 +158,14 @@ def download_category(
                 repository.record_entry(output_dir, entry)
                 downloaded.append(entry)
             except Exception as exc:
-                failed.append(
-                    DownloadFailure(source_url=document.source_url, title=document.title, reason=str(exc))
+                failure = DownloadFailure(
+                    source_url=document.source_url, title=document.title, reason=str(exc)
                 )
+                failed.append(failure)
+                if on_failure is not None:
+                    on_failure(failure)
+            if on_progress is not None:
+                on_progress(len(downloaded) + len(skipped) + len(failed))
 
         if not listing.has_next_page(html):
             break
