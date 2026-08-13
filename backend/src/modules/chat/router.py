@@ -6,7 +6,7 @@ from sse_starlette.sse import EventSourceResponse
 from src.core.db import get_connection
 from src.core.security import get_current_user
 from src.modules.chat.schemas import ChatRequest
-from src.modules.chat.service import generate_reply, retrieve_context
+from src.modules.chat.service import generate_reply, resolve_provider_config, retrieve_context
 
 logger = logging.getLogger(__name__)
 
@@ -34,4 +34,14 @@ async def post_chat(
             "departments": [user["department"]],
         },
     )
-    return EventSourceResponse(generate_reply(chat_request.message, chunks))
+
+    # A second, short-lived connection — kept separate from
+    # retrieve_context's (already closed above) so no DB connection is
+    # held open for the duration of the SSE stream itself.
+    config_conn = get_connection()
+    try:
+        provider_config = resolve_provider_config(conn=config_conn)
+    finally:
+        config_conn.close()
+
+    return EventSourceResponse(generate_reply(chat_request.message, chunks, provider_config=provider_config))
