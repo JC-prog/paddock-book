@@ -11,6 +11,35 @@ under `specs/`.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-08-13
+
+Spec: `specs/016-chat-provider-config/spec.md`
+
+### Added
+
+- Backend/Frontend: a new admin-only settings page
+  (`/admin/chat-provider`) lets an operator choose which provider powers
+  chat answer generation — Ollama (existing, zero-config), AWS Bedrock
+  (an admin-entered model identifier; AWS credentials remain externally
+  managed, unchanged), or a generic OpenAI-API-compatible connection (an
+  admin-entered base URL, API key, and model name, covering OpenAI
+  itself and any OpenAI-compatible service through one integration) —
+  and have it take effect for the very next chat request, with no code
+  deploy or restart. `chat/generation.py`, previously hardcoded to a
+  single Ollama call, is now a three-way dispatch reading a new
+  singleton database row on every request. A saved API key is never
+  displayed back to the admin after saving, and switching providers
+  never requires re-entering a previously saved credential.
+
+### Known limitation
+
+- The saved OpenAI-compatible API key is stored as plain text in the
+  database, relying on existing DB access controls rather than
+  application-level encryption — a deliberate, documented tradeoff (this
+  codebase has no encrypted-secret-storage mechanism yet), not an
+  oversight. Revisit before relying on this with a production-grade
+  provider credential.
+
 ## [0.14.0] - 2026-08-11
 
 Spec: `specs/015-download-progress-bar/spec.md`
