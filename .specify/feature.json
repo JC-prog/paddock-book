@@ -1,1 +1,3 @@
-{"feature_directory":"specs/015-download-progress-bar"}
+{
+  "feature_directory": "specs/016-chat-provider-config"
+}

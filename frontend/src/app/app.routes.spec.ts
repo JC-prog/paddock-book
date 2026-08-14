@@ -65,6 +65,26 @@ describe('app.routes', () => {
     expect(jobsRoute!.canActivate).toContain(adminGuard);
   });
 
+  it('resolves the "admin/chat-provider" path to ChatProviderComponent', async () => {
+    const chatProviderRoute = routes.find((r) => r.path === 'admin/chat-provider');
+    expect(chatProviderRoute).toBeTruthy();
+    expect(chatProviderRoute!.loadComponent).toBeTruthy();
+
+    const loaded = await chatProviderRoute!.loadComponent!();
+    const { ChatProviderComponent } = await import(
+      './features/admin/chat-provider/chat-provider.component'
+    );
+
+    expect(loaded).toBe(ChatProviderComponent);
+  });
+
+  it('guards the "admin/chat-provider" path with authGuard and adminGuard', () => {
+    const chatProviderRoute = routes.find((r) => r.path === 'admin/chat-provider');
+    expect(chatProviderRoute).toBeTruthy();
+    expect(chatProviderRoute!.canActivate).toContain(authGuard);
+    expect(chatProviderRoute!.canActivate).toContain(adminGuard);
+  });
+
   it('guards the root ("") path with authGuard', () => {
     const rootRoute = routes.find((r) => r.path === '');
     expect(rootRoute).toBeTruthy();

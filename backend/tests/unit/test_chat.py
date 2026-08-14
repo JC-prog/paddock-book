@@ -46,10 +46,14 @@ def _fake_retrieve_context(message, department, *, conn):
     return _FAKE_CHUNKS
 
 
-async def _fake_generate_reply(message, chunks):
+async def _fake_generate_reply(message, chunks, *, provider_config):
     assert chunks == _FAKE_CHUNKS
     yield "Real"
     yield "answer"
+
+
+def _fake_resolve_provider_config(*, conn):
+    return MagicMock()
 
 
 def test_chat_rejects_unauthenticated_requests():
@@ -83,6 +87,7 @@ def test_chat_streams_the_generated_reply_for_an_authenticated_request():
         patch("src.modules.chat.router.get_connection", MagicMock()),
         patch("src.modules.chat.router.retrieve_context", _fake_retrieve_context),
         patch("src.modules.chat.router.generate_reply", _fake_generate_reply),
+        patch("src.modules.chat.router.resolve_provider_config", _fake_resolve_provider_config),
     ):
         with client.stream("POST", "/v1/chat", json={"message": "hi"}) as response:
             assert response.status_code == 200
@@ -115,6 +120,7 @@ def test_chat_does_not_raise_on_early_client_disconnect():
         patch("src.modules.chat.router.get_connection", MagicMock()),
         patch("src.modules.chat.router.retrieve_context", _fake_retrieve_context),
         patch("src.modules.chat.router.generate_reply", _fake_generate_reply),
+        patch("src.modules.chat.router.resolve_provider_config", _fake_resolve_provider_config),
     ):
         with client.stream("POST", "/v1/chat", json={"message": "hi"}) as response:
             assert response.status_code == 200
@@ -131,6 +137,7 @@ def test_chat_logs_a_chat_retrieval_succeeded_event_with_account_and_department(
         patch("src.modules.chat.router.get_connection", MagicMock()),
         patch("src.modules.chat.router.retrieve_context", _fake_retrieve_context),
         patch("src.modules.chat.router.generate_reply", _fake_generate_reply),
+        patch("src.modules.chat.router.resolve_provider_config", _fake_resolve_provider_config),
     ):
         with client.stream("POST", "/v1/chat", json={"message": "hi"}) as response:
             list(response.iter_lines())
@@ -149,6 +156,7 @@ def test_chat_event_log_does_not_contain_the_question_text(caplog):
         patch("src.modules.chat.router.get_connection", MagicMock()),
         patch("src.modules.chat.router.retrieve_context", _fake_retrieve_context),
         patch("src.modules.chat.router.generate_reply", _fake_generate_reply),
+        patch("src.modules.chat.router.resolve_provider_config", _fake_resolve_provider_config),
     ):
         with client.stream("POST", "/v1/chat", json={"message": unique_question}) as response:
             list(response.iter_lines())
